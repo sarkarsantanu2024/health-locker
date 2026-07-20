@@ -5,17 +5,23 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
-import type { NavItem } from "@/modules/identity/navigation";
+import { NAV_BY_ROLE } from "@/modules/identity/navigation";
+import type { Role } from "@/shared/enums";
+import type { PermissionKey } from "@/shared/permissions";
 
 /**
  * Patient shell: a calm top bar and a thumb-reachable bottom bar on mobile,
  * which is where most patients will be. Deliberately different from the provider
  * console — someone checking whether they took a tablet needs different
  * ergonomics from a receptionist working a queue all day.
+ *
+ * Takes `role` + `permissions` rather than a nav array, for the same reason as
+ * ConsoleShell: icon components cannot cross the server→client boundary.
  */
 
 interface ConsumerShellProps {
-  nav: NavItem[];
+  role: Role;
+  permissions: string[];
   displayName: string;
   signOut: ReactNode;
   children: ReactNode;
@@ -25,8 +31,18 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function ConsumerShell({ nav, displayName, signOut, children }: ConsumerShellProps) {
+export function ConsumerShell({
+  role,
+  permissions,
+  displayName,
+  signOut,
+  children,
+}: ConsumerShellProps) {
   const pathname = usePathname();
+
+  const nav = NAV_BY_ROLE[role].filter(
+    (item) => !item.permission || permissions.includes(item.permission as PermissionKey),
+  );
   // Bottom bar holds the five most-used destinations; the rest stay in the top
   // bar. More than five and the targets get too narrow to hit reliably.
   const primary = nav.slice(0, 5);
@@ -85,9 +101,11 @@ export function ConsumerShell({ nav, displayName, signOut, children }: ConsumerS
         {children}
       </main>
 
+      {/* pb-[env(safe-area-inset-bottom)] keeps the bar clear of the iOS home
+          indicator once the app is installed to the home screen. */}
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
       >
         <ul className="mx-auto flex max-w-3xl">
           {primary.map((item) => {

@@ -7,7 +7,6 @@ import { prisma } from "@/lib/db";
 import { logoutAction } from "@/modules/identity/actions";
 import { ConsoleShell } from "@/modules/identity/console-shell";
 import { ConsumerShell } from "@/modules/identity/consumer-shell";
-import { NAV_BY_ROLE, PORTAL_LABEL } from "@/modules/identity/navigation";
 import { CONSUMER_ROLES } from "@/shared/enums";
 import { Button } from "@/ui/button";
 
@@ -28,8 +27,10 @@ function SignOutButton({ full }: { full?: boolean }) {
  * Authenticated shell. Patients get the consumer layout, providers and admins
  * the console — same tokens and components, different density.
  *
- * Navigation is filtered by the session's permissions, but hiding a link is
- * presentation, not protection: every destination runs its own guard.
+ * Only PLAIN DATA crosses into the client shells (role, permission strings,
+ * names). The nav table holds Lucide icon components, which are functions and
+ * cannot be serialised across the server→client boundary, so each shell imports
+ * that table itself and derives its own links.
  */
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getSession();
@@ -37,14 +38,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!session) redirect("/login");
   if (session.mustChangePassword) redirect("/change-password");
 
-  const nav = NAV_BY_ROLE[session.role].filter(
-    (item) => !item.permission || session.permissions.includes(item.permission),
-  );
-  const roleLabel = session.role.replace(/_/g, " ").toLowerCase();
+  const permissions = [...session.permissions];
 
   if (CONSUMER_ROLES.includes(session.role)) {
     return (
-      <ConsumerShell nav={nav} displayName={session.displayName} signOut={<SignOutButton />}>
+      <ConsumerShell
+        role={session.role}
+        permissions={permissions}
+        displayName={session.displayName}
+        signOut={<SignOutButton />}
+      >
         {children}
       </ConsumerShell>
     );
@@ -59,11 +62,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <ConsoleShell
-      nav={nav}
-      portalLabel={PORTAL_LABEL[session.role]}
+      role={session.role}
+      permissions={permissions}
       orgName={org?.name ?? null}
       displayName={session.displayName}
-      roleLabel={roleLabel}
       signOut={<SignOutButton full />}
     >
       {children}

@@ -7,6 +7,7 @@ import { loginAction, type ActionState } from "@/modules/identity/actions";
 import { Alert } from "@/ui/alert";
 import { Button } from "@/ui/button";
 import { Field, Input } from "@/ui/field";
+import { PasswordInput } from "@/ui/password-input";
 
 const initialState: ActionState = { ok: false };
 
@@ -56,10 +57,9 @@ export function LoginForm({ passwordChanged }: { passwordChanged: boolean }) {
 
       <Field label="Password" errors={state.fieldErrors?.password}>
         {(props) => (
-          <Input
+          <PasswordInput
             {...props}
             name="password"
-            type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="current-password"

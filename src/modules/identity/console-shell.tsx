@@ -6,20 +6,26 @@ import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
-import type { NavItem } from "@/modules/identity/navigation";
+import { NAV_BY_ROLE, PORTAL_LABEL, type NavItem } from "@/modules/identity/navigation";
+import type { Role } from "@/shared/enums";
+import type { PermissionKey } from "@/shared/permissions";
 
 /**
  * Provider console shell: fixed left sidebar on desktop, slide-over drawer on
  * mobile. Chosen over a top bar because Phases 7–11 push each portal to 7–9
  * sections, which would overflow a horizontal nav on a laptop.
+ *
+ * Takes `role` + `permissions` rather than a ready-made nav array: the nav table
+ * holds Lucide icon components, and a function cannot be serialised across the
+ * server→client boundary. Filtering here is presentation only — every
+ * destination still enforces its own guard on the server.
  */
 
 interface ConsoleShellProps {
-  nav: NavItem[];
-  portalLabel: string;
+  role: Role;
+  permissions: string[];
   orgName: string | null;
   displayName: string;
-  roleLabel: string;
   signOut: ReactNode;
   children: ReactNode;
 }
@@ -80,15 +86,20 @@ function Wordmark({ portalLabel }: { portalLabel: string }) {
 }
 
 export function ConsoleShell({
-  nav,
-  portalLabel,
+  role,
+  permissions,
   orgName,
   displayName,
-  roleLabel,
   signOut,
   children,
 }: ConsoleShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const portalLabel = PORTAL_LABEL[role];
+  const roleLabel = role.replace(/_/g, " ").toLowerCase();
+  const nav = NAV_BY_ROLE[role].filter(
+    (item) => !item.permission || permissions.includes(item.permission as PermissionKey),
+  );
 
   return (
     <div className="min-h-dvh bg-background">
