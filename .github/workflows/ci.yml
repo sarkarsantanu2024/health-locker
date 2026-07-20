@@ -33,6 +33,8 @@ jobs:
       DIRECT_URL: postgresql://healthlocker:healthlocker@localhost:5432/healthlocker_test?schema=public
       # CI never touches real infrastructure: no Upstash, no R2, no AI quota.
       AUTH_JWT_SECRET: ci-secret-ci-secret-ci-secret-ci-secret-01
+      # Fixed throwaway key: CI encrypts and decrypts its own seed data only.
+      ENCRYPTION_KEY: AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=
       AI_PROVIDER: mock
 
     steps:
@@ -52,10 +54,21 @@ jobs:
       - name: Apply migrations
         run: pnpm db:deploy
 
+      - name: Seed reference and demo data
+        run: pnpm db:seed
+
+      # The seed creates no accounts by design, so bootstrap the one the
+      # integration suite asserts on. Throwaway credentials, throwaway database.
+      - name: Bootstrap a Super Admin
+        run: pnpm create-super-admin --username ci.admin --password ci-only-password-not-a-secret
+
       - run: pnpm lint
 
       - run: pnpm typecheck
 
       - run: pnpm test
+
+      # Needs the migrated + seeded database above.
+      - run: pnpm test:integration
 
       - run: pnpm build

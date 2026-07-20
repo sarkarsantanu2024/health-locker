@@ -14,5 +14,8 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.ts", "src/**/*.test.tsx", "tests/**/*.test.ts"],
+    // Integration tests need a live database — they run via
+    // `pnpm test:integration` under vitest.integration.config.ts.
+    exclude: ["**/node_modules/**", "**/*.integration.test.ts"],
   },
 });
