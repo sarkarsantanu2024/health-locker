@@ -26,7 +26,13 @@ export type Role = (typeof ROLES)[number];
 export const ORG_TYPES = ["CLINIC", "HOSPITAL", "DIAGNOSTIC_CENTRE", "PHARMACY", "PLATFORM"] as const;
 export type OrgType = (typeof ORG_TYPES)[number];
 
-export const USER_STATUSES = ["ACTIVE", "SUSPENDED"] as const;
+/**
+ * PENDING_ACTIVATION is distinct from SUSPENDED on purpose: one has never been
+ * activated (self-registered, payment not yet verified), the other was switched
+ * off by an admin. Both are refused at login, but they are different situations
+ * for the admin queue and for the audit trail.
+ */
+export const USER_STATUSES = ["PENDING_ACTIVATION", "ACTIVE", "SUSPENDED"] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];
 
 /** Roles that administer the platform itself rather than a provider tenant. */

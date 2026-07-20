@@ -50,6 +50,8 @@ enum OrgType {
 }
 
 enum UserStatus {
+  /// Self-registered; cannot sign in until a manual payment is verified.
+  PENDING_ACTIVATION
   ACTIVE
   SUSPENDED
 }
