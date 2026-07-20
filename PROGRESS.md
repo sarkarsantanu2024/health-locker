@@ -7,8 +7,8 @@ Running log of the phased build. A fresh session should read this first, then
 | --- | --- | --- |
 | 0 | Scaffold (Vercel-ready) | ✅ Done — acceptance criteria met |
 | 1 | Data model (Neon + Prisma) | ✅ Done — acceptance criteria met |
-| 2 | Auth (username/password, admin-provisioned) + RBAC + tenancy | ⏭️ Next |
-| 3 | Patient core (records, timeline, family) | ⬜ |
+| 2 | Auth + RBAC + tenancy (**self-registration**, see below) | ✅ Done — acceptance criteria met |
+| 3 | Patient core (records, timeline, family) | ⏭️ Next |
 | 4 | Uploads + AI pipeline (serverless) | ⬜ |
 | 5 | Notifications (Web Push + in-app; no email) | ⬜ |
 | 6 | Manual payments (UPI / QR / bank) + subscriptions | ⬜ |
@@ -178,3 +178,109 @@ Running log of the phased build. A fresh session should read this first, then
    Phase 4 job route once uploads actually exist.
 4. **`create-super-admin` still writes a raw AuditLog row.** It should go through
    the audit service once Phase 2 introduces one.
+
+---
+
+## Phase 2 — Auth + RBAC + tenancy
+
+### ⚠️ Requirement change: consumers now self-register
+
+The original Section 0 rule was *no self-registration; Super Admin creates every
+account and hands over credentials out-of-band*. On 2026-07-20 the product owner
+changed this. The agreed model:
+
+- **Consumers self-register** at `/signup` choosing their **own** username and
+  password. Name, phone/WhatsApp, address, city, state and PIN code are all
+  mandatory, plus an explicit consent checkbox.
+- The account is created **`PENDING_ACTIVATION`** and **cannot sign in**. The
+  manual-payment gate is unchanged: a Super Admin verifies payment, then
+  activates. So nobody has to WhatsApp a password any more, but nothing is given
+  away for free.
+- **Providers are still admin-provisioned.** A self-registered "hospital admin"
+  could otherwise claim a tenant that is not theirs.
+- **Admins reset to a temporary password; they cannot set an exact one.** An
+  admin who can choose a password can silently impersonate a patient.
+
+Consequence: the acceptance criterion "only admin-created users can log in" is
+now **"only activated users can log in"**, which is what the tests assert.
+Phases 6 and 11 are unaffected — signup still creates the `AccessRequest` their
+queues key off.
+
+**Decisions taken**
+
+- **`UserStatus.PENDING_ACTIVATION`** added, distinct from `SUSPENDED`. One has
+  never been activated, the other was switched off; both refuse login, but they
+  are different rows in an admin queue and different events in the audit trail.
+- **Login failures are indistinguishable.** Unknown username, wrong password and
+  suspended account all return the same message, and a missing user still burns
+  an argon2 verify so response timing does not leak existence.
+- **Suspension is checked *after* the password**, so probing a suspended account
+  with a wrong password looks identical to probing an active one.
+- **Sessions are database-backed.** `getSession()` re-reads the user every
+  request, so suspending someone or revoking a session takes effect immediately
+  rather than when the access token expires.
+- **Only a SHA-256 of the refresh token is stored**, and it is rotated on use —
+  a leaked dump is not replayable and a stolen token is single-use.
+- **Middleware is a redirect, not the authorization boundary.** It cannot reach
+  the database, so it cannot know about suspension; `requireUser()` /
+  `requirePermission()` in each action are the real enforcement.
+- **`assertSameTenant` throws NOT_FOUND, not FORBIDDEN** — confirming that a
+  record exists in another tenant is itself a disclosure.
+- **TOTP is hand-rolled on `node:crypto`** (~40 lines, RFC 6238) rather than a
+  dependency, and verified against the RFC test vector.
+- **Rate limiting degrades, lockout does not.** IP throttling needs Upstash and
+  falls back to per-instance memory with a loud warning; the account lockout is
+  database-backed and always works.
+
+**Shipped**
+
+- `src/lib/auth/session.ts` — `getSession`, `requireUser`, `requireAuthenticated`,
+  `requireTenant`, `requirePermission`, `requireTenantPermission`, `assertSameTenant`.
+- `src/lib/auth/totp.ts` — base32 + RFC 6238 TOTP, drift window, `otpauth://` URI.
+- `src/lib/audit.ts` — audit service with recursive credential redaction that
+  never throws into the operation it is auditing.
+- `src/lib/ratelimit.ts` — Upstash sliding window with an in-memory fallback.
+- `src/modules/identity/` — `auth.service` (login, lockout, refresh rotation,
+  password change, TOTP), `signup.service` (self-registration in one
+  transaction), `provisioning.service` (createUser / resetPassword /
+  setUserActive), `actions.ts`, `navigation.ts`.
+- `src/middleware.ts` — edge redirect + forced password-change pin.
+- `src/shared/schemas/auth.ts` — zod contracts (closes Phase 1 open item #1).
+- Screens: `/login` (progressive 2FA), `/signup`, `/signup/submitted`,
+  `/change-password`, `/account` (TOTP enrolment), the app shell, and portal
+  dashboards for patient, clinic, hospital, diagnostic, pharmacy and admin.
+- `src/ui/` — Button, Field/Input/Select/Label, Alert, Card, PageHeader. Written
+  by hand on shadcn conventions (cva + `cn`) so `shadcn add` still works.
+
+**Verified**
+
+- `pnpm test` 99/99 unit; `pnpm test:integration` 36/36 against live Neon.
+- All four acceptance criteria have a named test:
+  - only activated users can sign in (self-registered → refused → activated → in);
+  - first login forces a change, and `requireUser()` blocks everything until then;
+  - cross-tenant access denied — clinic A cannot assert clinic B's rows;
+  - a patient is refused `user:create`, `payment:verify`, `audit:read`, `org:manage`.
+- Also proven: 5 wrong passwords lock the account and the *correct* password is
+  then refused; IP throttling trips at 10/min; a password change revokes other
+  sessions; sign-out revokes the row; only a hash of the refresh token is stored;
+  `user.created` audit metadata contains the username but never the password.
+- `/patient` and `/admin` return 307 → `/login?next=…` when signed out.
+- `pnpm lint`, `pnpm typecheck`, `next build` clean; 16 routes.
+
+**Open items / deferred**
+
+1. **No QR code on TOTP enrolment.** The secret and `otpauth://` URI are shown
+   for manual entry, which every authenticator app accepts. A QR renderer lands
+   in Phase 3, which needs the same one for the emergency card.
+2. **`/api/v1/auth/refresh` is not called automatically.** Rotation works and is
+   tested, but nothing refreshes in the background yet — a user is signed out
+   after the 15-minute access token expires. Wiring it belongs with the client
+   data layer in Phase 3.
+3. **Consent is captured as a checkbox, not a record.** The signup form requires
+   it, but there is no `ConsentRecord` table yet — that is Phase 13 (DPDP), and
+   it is worth pulling forward before real patient data arrives in Phase 3.
+4. **Portal dashboards past the shell are placeholders**, each labelled with the
+   phase that builds it. Nothing is silently stubbed.
+5. **`create-super-admin` still writes a raw AuditLog row** (carried over from
+   Phase 1) — it runs outside a request, so it needs the audit service's
+   context-free path.

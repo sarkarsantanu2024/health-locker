@@ -29,9 +29,16 @@ read it before starting work.
   route under `src/app/api/jobs/*`.
 - **Storage** — Cloudflare R2 (S3 API) via presigned uploads; MinIO locally.
 - **Auth** — username + password only. Custom JWT (jose) in an httpOnly cookie,
-  argon2id hashing. **Admin-provisioned accounts only**: no self-registration,
-  no email, no OAuth, no email password reset. Force password change on first
-  login. Optional TOTP 2FA.
+  argon2id hashing. No email, no OAuth, no email password reset. Optional TOTP 2FA.
+  - **Consumers self-register** (`/signup`) choosing their own credentials; the
+    account is created `PENDING_ACTIVATION` and cannot sign in until a Super
+    Admin verifies the manual payment. Name, phone/WhatsApp and full address are
+    mandatory.
+  - **Providers are admin-provisioned** — a self-registered provider could claim
+    a tenant that is not theirs. They get a temporary password and are forced to
+    change it at first login.
+  - **Admins reset to a generated temporary password**; they can never set an
+    exact one, because an admin who can choose a password can impersonate a patient.
 - **Payments** — no gateway. Manual UPI/QR/bank collection + admin verification.
 - **Notifications** — Web Push + in-app only. No email, no SMS. WhatsApp is sent
   by hand (generate the text + a `wa.me` link) until an adapter is added.
