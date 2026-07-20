@@ -1,16 +1,31 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
-/** Centred, single-column shell for the unauthenticated screens. */
+/**
+ * Unauthenticated shell. Centred single column, on the app background rather
+ * than plain white so the card reads as a distinct surface.
+ */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-muted px-4 py-10">
-      {/* max-w-lg rather than max-w-sm: the signup form has address fields that
-          need two columns on a phone-width-plus screen. */}
-      <main id="main" className="w-full max-w-lg">
-        {children}
-      </main>
-      <footer className="mt-8 text-center text-xs text-muted-foreground">
-        HealthLocker — accounts are issued by an administrator.
+    <div className="flex min-h-dvh flex-col bg-background">
+      <div className="flex flex-1 items-center justify-center px-4 py-10">
+        <main id="main" className="w-full max-w-lg">
+          <Link href="/login" className="mb-6 flex items-center justify-center gap-2.5">
+            <span
+              aria-hidden
+              className="flex size-10 items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground"
+            >
+              H
+            </span>
+            <span className="text-lg font-semibold tracking-tight">HealthLocker</span>
+          </Link>
+
+          {children}
+        </main>
+      </div>
+
+      <footer className="pb-8 text-center text-xs text-muted-foreground">
+        Your health records, private and in one place.
       </footer>
     </div>
   );

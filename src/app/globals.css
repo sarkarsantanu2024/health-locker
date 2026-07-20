@@ -1,57 +1,153 @@
 @import "tailwindcss";
 
 /*
- * Design tokens. Light and dark are both first-class (WCAG AA contrast); every
- * screen in every portal reads from these variables rather than hard-coded hex.
+ * DESIGN TOKENS
+ *
+ * Two surfaces of the same product:
+ *   - Patient portal — warm, spacious, large touch targets. Used occasionally,
+ *     often on a phone, sometimes by an anxious or elderly person.
+ *   - Provider console — dense and scannable. Used all day by someone who knows
+ *     it well and needs to see forty rows without scrolling.
+ * They share every token below; they differ in spacing, radius and type scale.
+ *
+ * Colours are chosen for WCAG AA against their own background in BOTH themes.
+ * Never hard-code a hex outside this file.
  */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: #f4f5f7;
-  --muted-foreground: #56606e;
-  --border: #e3e6ea;
-  --primary: #0f766e;
+  /* Surfaces */
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --foreground: #0f1729;
+  --muted: #eef1f5;
+  --muted-foreground: #58627a;
+  --border: #e2e6ec;
+  --border-strong: #cbd2dd;
+
+  /* Brand — teal reads as clinical without the coldness of pure blue */
+  --primary: #0d7266;
+  --primary-hover: #0a5c53;
   --primary-foreground: #ffffff;
-  --danger: #b42318;
-  --warning: #b54708;
-  --success: #067647;
+  --primary-subtle: #e2f2ef;
+
+  /* Warmth, used sparingly and only in the patient portal */
+  --accent: #b45309;
+  --accent-subtle: #fdf3e7;
+
+  /* Semantic */
+  --success: #066d47;
+  --success-subtle: #e4f4ec;
+  --warning: #9a5b06;
+  --warning-subtle: #fdf2e2;
+  --danger: #ab2117;
+  --danger-subtle: #fdeceb;
+  --info: #155ac0;
+  --info-subtle: #e8f0fd;
+
+  /* Elevation — deliberately soft; a health record is not a casino */
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 41 / 0.05);
+  --shadow-md: 0 2px 4px -1px rgb(15 23 41 / 0.06), 0 4px 12px -2px rgb(15 23 41 / 0.08);
+  --shadow-lg: 0 8px 24px -4px rgb(15 23 41 / 0.12);
+
+  --radius-console: 0.5rem;
+  --radius-consumer: 1rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --muted: #17191c;
-    --muted-foreground: #a2acb9;
-    --border: #26292e;
-    --primary: #2dd4bf;
-    --primary-foreground: #04211f;
-    --danger: #fda29b;
-    --warning: #fdb022;
-    --success: #75e0a7;
+    --background: #0a0e14;
+    --surface: #121822;
+    --surface-2: #19202c;
+    --foreground: #e7edf6;
+    --muted: #1a212d;
+    --muted-foreground: #97a3b8;
+    --border: #232c3a;
+    --border-strong: #33405280;
+
+    --primary: #35c9b5;
+    --primary-hover: #4dd8c5;
+    --primary-foreground: #04231f;
+    --primary-subtle: #10312d;
+
+    --accent: #f0a55c;
+    --accent-subtle: #2c1f11;
+
+    --success: #63d9a0;
+    --success-subtle: #0d2a1e;
+    --warning: #f2b155;
+    --warning-subtle: #2b2011;
+    --danger: #f98d84;
+    --danger-subtle: #2e1614;
+    --info: #77aaf5;
+    --info-subtle: #101f36;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+    --shadow-md: 0 2px 4px -1px rgb(0 0 0 / 0.45), 0 4px 12px -2px rgb(0 0 0 / 0.5);
+    --shadow-lg: 0 8px 24px -4px rgb(0 0 0 / 0.6);
   }
+}
+
+/* The viewer's explicit choice must beat the OS preference in both directions. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
-  --color-danger: var(--danger);
-  --color-warning: var(--warning);
+  --color-primary-subtle: var(--primary-subtle);
+
+  --color-accent: var(--accent);
+  --color-accent-subtle: var(--accent-subtle);
+
   --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --radius-console: var(--radius-console);
+  --radius-consumer: var(--radius-consumer);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
+  /* Tabular figures keep dosages, amounts and counts from jittering as they update. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Respect users who ask the OS to reduce motion. */
+/* One focus treatment everywhere, and it is never removed (WCAG 2.4.7). */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

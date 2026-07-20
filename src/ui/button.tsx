@@ -4,26 +4,29 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Follows shadcn/ui conventions (cva variants + `cn`), written by hand so we
- * vendor only what we use. `pnpm dlx shadcn@latest add …` remains compatible.
+ * shadcn/ui conventions (cva + `cn`), hand-written so we vendor only what we use.
  *
- * Focus rings are never removed — keyboard users need to see where they are
- * (WCAG 2.4.7), and `min-h-11` keeps the touch target above the 44px guidance.
+ * `size` carries the density split: `md` is the console default, `lg` the
+ * patient-facing default. Both clear the 44px touch-target guidance.
  */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-[background-color,box-shadow,opacity] disabled:pointer-events-none disabled:opacity-55",
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-foreground hover:opacity-90",
-        secondary: "border border-border bg-background hover:bg-muted",
-        ghost: "hover:bg-muted",
-        danger: "bg-danger text-background hover:opacity-90",
+        primary: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover",
+        secondary:
+          "border border-border-strong bg-surface text-foreground shadow-sm hover:bg-surface-2",
+        ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
+        subtle: "bg-primary-subtle text-primary hover:brightness-95",
+        danger: "bg-danger text-white shadow-sm hover:brightness-110",
+        link: "text-primary underline underline-offset-4 hover:text-primary-hover",
       },
       size: {
-        sm: "min-h-9 px-3 py-1.5 text-xs",
-        md: "min-h-11 px-4 py-2",
-        lg: "min-h-12 px-6 py-3 text-base",
+        xs: "h-8 rounded-md px-2.5 text-xs",
+        sm: "h-9 rounded-md px-3 text-sm",
+        md: "h-11 rounded-lg px-4 text-sm",
+        lg: "h-12 rounded-xl px-6 text-base",
       },
       full: { true: "w-full", false: "" },
     },
