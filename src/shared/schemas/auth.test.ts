@@ -36,20 +36,35 @@ describe("usernameSchema", () => {
 });
 
 describe("passwordSchema", () => {
-  it("requires 12 characters", () => {
+  it("requires 8 characters", () => {
     expect(passwordSchema.safeParse("short").success).toBe(false);
+    expect(passwordSchema.safeParse("kx7mQp").success).toBe(false); // 6
+    expect(passwordSchema.safeParse("kx7mQpz").success).toBe(false); // 7
+    expect(passwordSchema.safeParse("kx7mQpz2").success).toBe(true); // 8
+    // Length alone is not enough: "12345678" is 8 but still blocked.
+    expect(passwordSchema.safeParse("12345678").success).toBe(false);
     expect(passwordSchema.safeParse("a-long-enough-one").success).toBe(true);
   });
 
-  it("rejects the obvious guesses", () => {
-    for (const bad of ["password1234", "Welcome12345", "healthlocker1", "qwerty123456"]) {
+  it("rejects only exact breach-list matches, case-insensitively", () => {
+    for (const bad of ["password", "Password123", "12345678", "QWERTY123", "iloveyou"]) {
       expect(passwordSchema.safeParse(bad).success, bad).toBe(false);
     }
   });
 
-  it("rejects leading or trailing whitespace", () => {
-    expect(passwordSchema.safeParse(" a-long-password").success).toBe(false);
-    expect(passwordSchema.safeParse("a-long-password ").success).toBe(false);
+  it("accepts what an ordinary person would actually choose", () => {
+    // No capital, digit or symbol requirement: NIST advises against composition
+    // rules, and this product is used by people who are not developers.
+    for (const good of [
+      "kolkata2026",
+      "my dog rocky",
+      "amarsonarbangla",
+      "priya1989",
+      "chai lover",
+      "passwordless-vault", // contains "password" but is not the banned exact value
+    ]) {
+      expect(passwordSchema.safeParse(good).success, good).toBe(true);
+    }
   });
 });
 
@@ -115,14 +130,22 @@ describe("signupSchema", () => {
     }
   });
 
-  it("rejects a password containing the username", () => {
-    const result = signupSchema.safeParse({
-      ...validSignup,
-      password: "priya.sharma-2026",
-      confirmPassword: "priya.sharma-2026",
-    });
+  it("rejects a password identical to the username, but allows one containing it", () => {
+    expect(
+      signupSchema.safeParse({
+        ...validSignup,
+        password: "priya.sharma",
+        confirmPassword: "priya.sharma",
+      }).success,
+    ).toBe(false);
 
-    expect(result.success).toBe(false);
+    expect(
+      signupSchema.safeParse({
+        ...validSignup,
+        password: "priya.sharma-2026",
+        confirmPassword: "priya.sharma-2026",
+      }).success,
+    ).toBe(true);
   });
 
   it("requires explicit consent before storing health records", () => {

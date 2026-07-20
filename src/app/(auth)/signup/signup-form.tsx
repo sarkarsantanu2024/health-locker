@@ -117,7 +117,7 @@ export function SignupForm({ plans }: { plans: SignupPlan[] }) {
         <Field
           label="Password"
           errors={state.fieldErrors?.password}
-          hint="At least 12 characters. A memorable phrase beats a short complex one."
+          hint="At least 8 characters. No capitals or symbols required — a phrase you will remember is best."
         >
           {(props) => (
             <Input {...props} name="password" type="password" autoComplete="new-password" required />

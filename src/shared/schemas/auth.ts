@@ -17,18 +17,43 @@ export const usernameSchema = z
   .regex(/^[a-z0-9._-]+$/, "Use only letters, numbers, dot, underscore or hyphen");
 
 /**
- * Policy for passwords a human chooses. Length is the dominant factor, so we ask
- * for 12+ and screen the obvious garbage rather than demanding symbol classes,
- * which pushes people toward `Password1!` and a sticky note.
+ * Passwords a human chooses. 8 characters is the NIST SP 800-63B minimum.
+ *
+ * Deliberately permissive beyond that. NIST advises against composition rules
+ * (symbol/digit/case classes) — they push people toward `Password1!` and a
+ * sticky note without adding real entropy. The actual defence against guessing
+ * is the 5-attempt account lockout plus the IP throttle in auth.service.ts.
+ *
+ * The blocklist is an EXACT match on a handful of passwords that appear at the
+ * top of every breach corpus. It was previously a prefix match, which wrongly
+ * rejected reasonable passwords like "passwordless-vault-2026".
  */
+const BANNED_PASSWORDS = new Set([
+  "password",
+  "password1",
+  "password123",
+  "passw0rd",
+  "12345678",
+  "123456789",
+  "1234567890",
+  "qwerty123",
+  "qwertyuiop",
+  "iloveyou",
+  "abc12345",
+  "welcome1",
+  "welcome123",
+  "admin123",
+  "letmein1",
+  "healthlocker",
+]);
+
 export const passwordSchema = z
   .string()
-  .min(12, "Password must be at least 12 characters")
+  .min(8, "Password must be at least 8 characters")
   .max(128, "Password must be at most 128 characters")
-  .refine((value) => !/^\s|\s$/.test(value), "Password cannot start or end with a space")
   .refine(
-    (value) => !/^(?:password|welcome|healthlocker|qwerty|12345678)/i.test(value),
-    "Choose something less guessable",
+    (value) => !BANNED_PASSWORDS.has(value.toLowerCase()),
+    "That password appears in known breach lists — please pick another",
   );
 
 export const loginSchema = z.object({
@@ -117,8 +142,11 @@ export const signupSchema = z
     message: "Passwords do not match",
     path: ["confirmPassword"],
   })
-  .refine((data) => !data.password.toLowerCase().includes(data.username.toLowerCase()), {
-    message: "Password must not contain your username",
+  // Only the exact case rejected: "password must not CONTAIN your username" was
+  // too strict for ordinary users, who reasonably build a password around a
+  // memorable word that happens to be their name.
+  .refine((data) => data.password.toLowerCase() !== data.username.toLowerCase(), {
+    message: "Your password cannot be the same as your username",
     path: ["password"],
   });
 export type SignupInput = z.infer<typeof signupSchema>;
