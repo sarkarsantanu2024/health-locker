@@ -13,6 +13,7 @@ import {
   Package,
   Pill,
   ScrollText,
+  ShieldAlert,
   ShieldCheck,
   ShoppingCart,
   UserCog,
@@ -47,14 +48,7 @@ export interface NavItem {
 
 const PATIENT_NAV: NavItem[] = [
   { href: "/patient", label: "Home", icon: Home },
-  {
-    href: "/patient/timeline",
-    label: "Timeline",
-    icon: Activity,
-    permission: "record:read",
-    phase: 3,
-    summary: "Every prescription, report, medicine and expense in one filterable timeline.",
-  },
+  { href: "/patient/timeline", label: "Timeline", icon: Activity, permission: "record:read" },
   {
     href: "/patient/medicines",
     label: "Medicines",
@@ -71,13 +65,12 @@ const PATIENT_NAV: NavItem[] = [
     phase: 4,
     summary: "Lab results and scans, with out-of-range values flagged in plain language.",
   },
+  { href: "/patient/family", label: "Family", icon: Users, permission: "family:read" },
   {
-    href: "/patient/family",
-    label: "Family",
-    icon: Users,
-    permission: "family:read",
-    phase: 3,
-    summary: "Add family members and switch between their records.",
+    href: "/patient/emergency",
+    label: "Emergency",
+    icon: ShieldAlert,
+    permission: "emergency-card:manage",
   },
   {
     href: "/patient/billing",
