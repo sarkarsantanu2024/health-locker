@@ -48,8 +48,8 @@ async function main(): Promise<void> {
 
   const password = values.password?.trim() || generateTemporaryPassword();
 
-  if (password.length < 12) {
-    throw new Error("Password must be at least 12 characters.");
+  if (password.length < 8) {
+    throw new Error("Password must be at least 8 characters.");
   }
 
   const passwordHash = await hashPassword(password);

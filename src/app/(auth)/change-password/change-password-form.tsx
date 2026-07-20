@@ -49,7 +49,7 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
       <Field
         label="New password"
         errors={state.fieldErrors?.newPassword}
-        hint="At least 12 characters. A memorable phrase beats a short complex one."
+        hint="At least 8 characters. No capitals or symbols required — a phrase you will remember is best."
       >
         {(props) => (
           <Input {...props} name="newPassword" type="password" autoComplete="new-password" required />
