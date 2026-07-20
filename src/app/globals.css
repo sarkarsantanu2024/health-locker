@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens. Light and dark are both first-class (WCAG AA contrast); every
+ * screen in every portal reads from these variables rather than hard-coded hex.
+ */
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --muted: #f4f5f7;
+  --muted-foreground: #56606e;
+  --border: #e3e6ea;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --danger: #b42318;
+  --warning: #b54708;
+  --success: #067647;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --muted: #17191c;
+    --muted-foreground: #a2acb9;
+    --border: #26292e;
+    --primary: #2dd4bf;
+    --primary-foreground: #04211f;
+    --danger: #fda29b;
+    --warning: #fdb022;
+    --success: #75e0a7;
   }
 }
 
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Respect users who ask the OS to reduce motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

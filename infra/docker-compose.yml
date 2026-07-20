@@ -1,0 +1,65 @@
+# Optional local stack for offline development.
+#
+#   docker compose -f infra/docker-compose.yml up -d           # Postgres only
+#   docker compose -f infra/docker-compose.yml --profile storage up -d   # + MinIO
+#
+# Production uses Neon (Postgres) and Cloudflare R2 (storage); these containers
+# only stand in for them so you can work without cloud credentials.
+
+name: healthlocker
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: healthlocker
+      POSTGRES_PASSWORD: healthlocker
+      POSTGRES_DB: healthlocker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthlocker -d healthlocker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # S3-compatible stand-in for Cloudflare R2. Console: http://localhost:9001
+  minio:
+    image: minio/minio:latest
+    profiles: ["storage"]
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: healthlocker
+      MINIO_ROOT_PASSWORD: healthlocker
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: creates the documents bucket so uploads work immediately.
+  minio-init:
+    image: minio/mc:latest
+    profiles: ["storage"]
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 healthlocker healthlocker &&
+      mc mb --ignore-existing local/healthlocker-documents &&
+      echo 'bucket ready'
+      "
+
+volumes:
+  postgres-data:
+  minio-data:

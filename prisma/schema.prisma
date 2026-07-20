@@ -1,0 +1,118 @@
+// HealthLocker — Prisma schema
+//
+// PHASE 0 BASELINE: only what the scaffold needs to prove connectivity and to
+// create the first Super Admin (there is no self-signup). Phase 1 expands this
+// into the full Identity / Patient / Clinical / Documents-AI / Commerce / Ops
+// model. Enum names mirror src/shared/enums.ts exactly.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Neon POOLED connection string (…-pooler.…) — used by the app at runtime.
+  url       = env("DATABASE_URL")
+  // Neon DIRECT connection — used by `prisma migrate`, which cannot run through
+  // a transaction pooler.
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  PATIENT
+  FAMILY_MEMBER
+  CLINIC_STAFF
+  CLINIC_ADMIN
+  HOSPITAL_STAFF
+  HOSPITAL_ADMIN
+  DIAGNOSTIC_STAFF
+  DIAGNOSTIC_ADMIN
+  PHARMACY_STAFF
+  PHARMACY_ADMIN
+  PLATFORM_ADMIN
+  SUPER_ADMIN
+}
+
+enum OrgType {
+  CLINIC
+  HOSPITAL
+  DIAGNOSTIC_CENTRE
+  PHARMACY
+  PLATFORM
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// A tenant. Every provider-owned row in later phases carries `orgId`.
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  type      OrgType
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  users     User[]
+  auditLogs AuditLog[]
+
+  @@index([type])
+  @@index([deletedAt])
+}
+
+/// Accounts are ADMIN-PROVISIONED: no self-registration, no email, no OAuth.
+model User {
+  id                  String     @id @default(cuid())
+  username            String     @unique
+  passwordHash        String
+  displayName         String
+  /// Used only so an operator can send credentials by hand over WhatsApp/call.
+  phone               String?
+  role                Role
+  status              UserStatus @default(ACTIVE)
+  /// Admin-created users must rotate their temporary password before doing anything else.
+  mustChangePassword  Boolean    @default(true)
+  /// TOTP secret (encrypted at rest). Optional 2FA — no email, no SMS.
+  twoFactorSecret     String?
+  twoFactorEnabled    Boolean    @default(false)
+  lastLoginAt         DateTime?
+  passwordChangedAt   DateTime?
+
+  orgId String?
+  org   Organization? @relation(fields: [orgId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  auditLogs AuditLog[]
+
+  @@index([orgId])
+  @@index([role])
+  @@index([deletedAt])
+}
+
+/// Append-only trail for every create/update/delete of medical or financial data,
+/// plus every read of a medical record. Never updated, never hard-deleted.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  orgId      String?
+  org        Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  /// Redacted diff / context. Must never contain raw credentials.
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([orgId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+}

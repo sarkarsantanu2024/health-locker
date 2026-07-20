@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: healthlocker
+          POSTGRES_PASSWORD: healthlocker
+          POSTGRES_DB: healthlocker_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U healthlocker"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://healthlocker:healthlocker@localhost:5432/healthlocker_test?schema=public
+      DIRECT_URL: postgresql://healthlocker:healthlocker@localhost:5432/healthlocker_test?schema=public
+      # CI never touches real infrastructure: no Upstash, no R2, no AI quota.
+      AUTH_JWT_SECRET: ci-secret-ci-secret-ci-secret-ci-secret-01
+      AI_PROVIDER: mock
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm prisma generate
+
+      - name: Apply migrations
+        run: pnpm db:deploy
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm build
