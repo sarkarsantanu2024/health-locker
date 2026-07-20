@@ -1,9 +1,31 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils";
 
-export function Card({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("rounded-xl border border-border bg-background", className)} {...props} />;
+/**
+ * `tone` is the density switch:
+ *   console  — 8px radius, tight padding, for provider screens
+ *   consumer — 16px radius, generous padding, for patient screens
+ */
+const cardVariants = cva("bg-surface border border-border", {
+  variants: {
+    tone: {
+      console: "rounded-console shadow-sm",
+      consumer: "rounded-consumer shadow-md",
+    },
+    interactive: {
+      true: "transition-shadow hover:shadow-lg",
+      false: "",
+    },
+  },
+  defaultVariants: { tone: "console", interactive: false },
+});
+
+export type CardProps = ComponentProps<"div"> & VariantProps<typeof cardVariants>;
+
+export function Card({ className, tone, interactive, ...props }: CardProps) {
+  return <div className={cn(cardVariants({ tone, interactive }), className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: ComponentProps<"div">) {
@@ -23,5 +45,7 @@ export function CardContent({ className, ...props }: ComponentProps<"div">) {
 }
 
 export function CardFooter({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("flex items-center gap-3 p-5 pt-0", className)} {...props} />;
+  return (
+    <div className={cn("flex items-center gap-3 border-t border-border p-5", className)} {...props} />
+  );
 }
