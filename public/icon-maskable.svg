@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="HealthLocker">
+  <!-- Maskable: artwork stays inside the safe zone (centre 80%) so Android can
+       crop this to a circle, squircle or rounded square without clipping it. -->
+  <rect width="512" height="512" fill="#0d7266"/>
+  <g transform="translate(256 256) scale(0.78) translate(-256 -256)">
+    <path d="M176 216v-40a80 80 0 0 1 160 0v40" fill="none" stroke="#ffffff" stroke-width="34" stroke-linecap="round" opacity="0.85"/>
+    <rect x="136" y="216" width="240" height="184" rx="32" fill="#ffffff"/>
+    <path d="M256 268v80M216 308h80" stroke="#0d7266" stroke-width="30" stroke-linecap="round"/>
+  </g>
+</svg>
