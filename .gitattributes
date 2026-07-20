@@ -1,0 +1,19 @@
+# Normalise to LF in the repository. Windows checkouts still get CRLF locally,
+# but CI (Linux) and diffs stay clean.
+* text=auto eol=lf
+
+# Shell scripts and Docker entrypoints must be LF even on Windows checkouts.
+*.sh text eol=lf
+
+# Generated — collapse in diffs and reviews.
+pnpm-lock.yaml linguist-generated=true -diff
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

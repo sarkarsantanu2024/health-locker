@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HealthLocker
 
-## Getting Started
+A multi-tenant SaaS healthcare platform — a digital health locker and care
+network. Patients keep prescriptions, reports, medicines, vaccinations, insurance
+and expenses in one AI-structured timeline; providers (clinic, hospital,
+diagnostic centre, pharmacy) manage appointments, reports, billing and inventory.
 
-First, run the development server:
+Built to run on free tiers: **Vercel + Neon + Upstash + Cloudflare R2**.
+
+> **There is no public sign-up.** Accounts are provisioned by a Super Admin after
+> a manual payment is verified, and credentials are handed over out-of-band. The
+> system never sends email.
+
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+cp infra/.env.example .env          # edit DATABASE_URL + AUTH_JWT_SECRET
+
+# Local Postgres (optional — a Neon URL works just as well)
+docker compose -f infra/docker-compose.yml up -d
+
+pnpm db:migrate                     # create schema
+pnpm db:seed                        # platform organization
+pnpm create-super-admin --username root.admin   # prints the password ONCE
+
+pnpm dev                            # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The landing page shows live database and service status; `/api/v1/health`
+returns the same thing as JSON.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Next dev server |
+| `pnpm build` / `pnpm start` | Production build / serve |
+| `pnpm lint` / `pnpm typecheck` | ESLint / `tsc --noEmit` |
+| `pnpm test` / `pnpm test:watch` | Vitest |
+| `pnpm db:migrate` | Create + apply a migration (dev) |
+| `pnpm db:deploy` | Apply existing migrations (CI/prod) |
+| `pnpm db:seed` | Seed baseline data |
+| `pnpm db:studio` | Prisma Studio |
+| `pnpm create-super-admin` | Bootstrap the first Super Admin login |
 
-## Learn More
+## Layout
 
-To learn more about Next.js, take a look at the following resources:
+```text
+src/
+├─ app/            Next routes — portals + api/v1/* + api/jobs/*
+├─ modules/        Feature domains: identity, patient, clinical, documents-ai,
+│                  notify, billing, ops — each {schema,service,actions,api,ui}
+├─ shared/         zod schemas, enums, error shape — source of truth for types
+├─ lib/            prisma, auth, r2, upstash, webpush, ai, env
+└─ ui/             shared components
+prisma/            schema, migrations, seed
+infra/             .env.example, docker-compose (local postgres + minio)
+scripts/           create-super-admin CLI
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Every variable is listed and explained in [`infra/.env.example`](infra/.env.example).
+Only `DATABASE_URL` and `AUTH_JWT_SECRET` are required to boot — Upstash, R2, Web
+Push and the AI provider are validated lazily at the point of use, so the app runs
+fine before they are configured.
 
-## Deploy on Vercel
+On Neon, `DATABASE_URL` must be the **pooled** host (`…-pooler.…`) and `DIRECT_URL`
+the direct one; `prisma migrate` cannot run through a transaction pooler.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploying to Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Import the repo; the framework preset is detected automatically.
+2. Set the environment variables from `infra/.env.example` for Production and
+   Preview. At minimum: `DATABASE_URL`, `DIRECT_URL`, `AUTH_JWT_SECRET`, `APP_URL`.
+3. Deploy, then run `pnpm db:deploy` against the production database and
+   `pnpm create-super-admin` once to create the first login.
+
+`vercel.json` pins the region to `bom1` (Mumbai — India-first) and sets baseline
+security headers. Scheduled jobs are added to its `crons` array as later phases
+introduce them.
+
+## Build phases
+
+See `PROGRESS.md` for what is done, what is next, and what has been deferred.
+Architecture rules and non-negotiables live in `AGENTS.md`.
