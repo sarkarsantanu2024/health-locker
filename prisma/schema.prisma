@@ -306,6 +306,19 @@ enum AccessRequestStatus {
   PROVISIONED
 }
 
+enum ConsentType {
+  /// Storing and processing health records at all — the DPDP basis for everything else.
+  DATA_PROCESSING
+  /// Sharing a record with a specific provider organization.
+  PROVIDER_SHARING
+  /// Operational contact over WhatsApp (account, payment, reminders).
+  WHATSAPP_CONTACT
+  /// Running AI/OCR over uploaded documents.
+  AI_PROCESSING
+  /// The read-only emergency card behind a shareable link.
+  EMERGENCY_SHARING
+}
+
 enum NotificationChannel {
   IN_APP
   WEB_PUSH
@@ -584,6 +597,7 @@ model Patient {
   familyOf           FamilyLink[]      @relation("FamilyOwner")
   memberOf           FamilyLink[]      @relation("FamilyMember")
   emergencyCards     EmergencyCard[]
+  consents           ConsentRecord[]
   appointments       Appointment[]
   encounters         Encounter[]
   prescriptions      Prescription[]
@@ -674,6 +688,38 @@ model EmergencyCard {
   deletedAt DateTime?
 
   @@index([patientId])
+}
+
+/// DPDP / GDPR consent. Append-only: withdrawing consent writes `revokedAt` on
+/// the existing row rather than deleting it, because "was there consent on the
+/// day this record was created?" must stay answerable years later.
+///
+/// `version` is the wording the person actually agreed to — re-wording the
+/// notice invalidates old consent, and without this you cannot tell which text
+/// someone saw.
+model ConsentRecord {
+  id        String      @id @default(cuid())
+  patientId String
+  patient   Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type      ConsentType
+  version   String
+  granted   Boolean     @default(true)
+  grantedAt DateTime    @default(now())
+  revokedAt DateTime?
+
+  /// Scope for PROVIDER_SHARING — which organization the grant covers.
+  orgId String?
+
+  /// Evidence of the act of consenting.
+  ip        String?
+  userAgent String?
+  /// How it was captured: "signup-form", "settings", "verbal-at-reception"…
+  source    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([patientId, type, revokedAt])
+  @@index([orgId])
 }
 
 // ===========================================================================

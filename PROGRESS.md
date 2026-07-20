@@ -8,8 +8,8 @@ Running log of the phased build. A fresh session should read this first, then
 | 0 | Scaffold (Vercel-ready) | ✅ Done — acceptance criteria met |
 | 1 | Data model (Neon + Prisma) | ✅ Done — acceptance criteria met |
 | 2 | Auth + RBAC + tenancy (**self-registration**, see below) | ✅ Done — acceptance criteria met |
-| 3 | Patient core (records, timeline, family) | ⏭️ Next |
-| 4 | Uploads + AI pipeline (serverless) | ⬜ |
+| 3 | Patient core (records, timeline, family) | ✅ Done — acceptance criteria met |
+| 4 | Uploads + AI pipeline (serverless) | ⏭️ Next — **blocked**: needs R2 + Upstash + AI key |
 | 5 | Notifications (Web Push + in-app; no email) | ⬜ |
 | 6 | Manual payments (UPI / QR / bank) + subscriptions | ⬜ |
 | 7 | Clinic portal | ⬜ |
@@ -284,3 +284,88 @@ queues key off.
 5. **`create-super-admin` still writes a raw AuditLog row** (carried over from
    Phase 1) — it runs outside a request, so it needs the audit service's
    context-free path.
+
+---
+
+## Phase 3 — Patient core (records, timeline, family)
+
+**Decisions taken**
+
+- **The "acting as" cookie is never trusted.** It names a patient, but
+  `getPatientContext()` re-reads the `FamilyLink` on every request to confirm the
+  link still exists and what it permits. A forged or stale cookie silently falls
+  back to the caller's own record instead of erroring or granting access.
+- **`accessLevel` gates writes, not reads.** `requireManageContext()` is a
+  separate call, so a VIEW-only link can open a relative's timeline but cannot
+  change anything.
+- **Family is always managed from your own record.** A MANAGE link would
+  otherwise let you extend someone else's family graph on their behalf.
+- **Removing a family member removes the LINK, not the record.** Soft-deleting
+  someone's health data because a relationship ended would be destroying medical
+  history.
+- **The emergency card shows only ACTIVE conditions**, never resolved ones — a
+  first responder does not need them, and sharing them is needless exposure.
+- **Re-issuing a card revokes the previous token**, which is what makes a lost
+  printout recoverable.
+- **Unknown, revoked and expired tokens all render identically**, so a token
+  cannot be probed for validity.
+- **Consent tables pulled forward from Phase 13**, because Phase 3 is where real
+  health data starts landing and consent recorded ten phases later would not
+  cover it. Withdrawal sets `revokedAt` rather than deleting: "was there consent
+  when this record was created?" must stay answerable.
+- **PDF via `@react-pdf/renderer`**, not a headless browser — a Chromium binary
+  would blow the Vercel function size limit and the cold start.
+- **The export route takes no patient id.** It exports whichever record the
+  session is acting for; an id in the URL would invite enumeration.
+
+**Shipped**
+
+- `src/modules/patient/context.ts` — `getPatientContext`, `requireManageContext`,
+  `assertCanReadPatient`, `setActivePatient`.
+- `timeline.service.ts` — merges 9 sources (prescriptions, reports, vaccinations,
+  visits, vitals, conditions, allergies, expenses, documents) into one ordered
+  feed, with kind/date/text filters and day grouping.
+- `emergency.service.ts` — issue, revoke, resolve, and server-rendered QR SVG.
+- `patient.service.ts` — profile, family graph, and DPDP consent.
+- `export.pdf.tsx` + `/api/v1/patient/export` — A4 PDF of profile and history.
+- Screens: `/patient/timeline` (URL-driven filters, so a filtered view is
+  shareable), `/patient/family` (switcher + add/remove), `/patient/emergency`
+  (QR, copy link, view counter, revoke), and the public `/emergency/[token]`.
+- `ConsentRecord` model + `ConsentType` enum (migration `consent_records`).
+
+**Verified**
+
+- `pnpm test:integration` 57/57, including 21 new Phase 3 tests.
+- Acceptance criteria each have a named test:
+  - merged timeline returns all 9 sources newest-first, filters by kind/date/text,
+    and never mixes one patient's records into another's;
+  - family switch honours MANAGE, refuses writes on VIEW, ignores a forged
+    cookie, and falls back when a link is removed;
+  - emergency card exposes only opted-in sections, hides resolved conditions,
+    invalidates the old token on re-issue, and returns null for revoked/expired/
+    unknown/malformed tokens alike.
+- Also proven: the share token never reaches the audit trail; every card view is
+  counted and audited.
+- Live checks: PDF export returns a real 3.3 KB `%PDF` with an attachment
+  filename and refuses anonymous callers; the public emergency page renders
+  without a session, shows the opted-in sections, does **not** leak vaccination
+  history, and is `noindex`.
+- 44 authenticated pages render cleanly (`pnpm smoke`); lint, typecheck and build
+  clean.
+
+**Open items / deferred**
+
+1. **Profile editing has a service and schema but no screen yet.**
+   `updateProfileAction` is wired and guarded; the form lands with the settings
+   screen rather than being squeezed into this phase.
+2. **`/patient/medicines` and `/patient/reports` remain placeholders** — they are
+   fed by the Phase 4 upload/AI pipeline, so building them now would show empty
+   shells with no way to fill them.
+3. **Timeline paginates by cap, not cursor.** Each source is capped at 200 and
+   the merged list re-capped. Fine at current volumes; a cursor is needed once a
+   patient has thousands of entries.
+4. **Consent is recorded but not yet enforced.** `hasConsent()` exists and the
+   emergency flow writes a record; wiring it as a *gate* (no AI processing
+   without `AI_PROCESSING`) belongs with Phase 4, which is the first consumer.
+5. **The signup consent checkbox still does not write a `ConsentRecord`** — the
+   table now exists, so this is a small follow-up in Phase 4.
