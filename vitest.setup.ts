@@ -10,4 +10,7 @@ Object.assign(process.env, {
   DATABASE_URL:
     process.env.DATABASE_URL ?? "postgresql://test:test@localhost:5432/healthlocker_test?schema=public",
   AUTH_JWT_SECRET: process.env.AUTH_JWT_SECRET ?? "test-secret-test-secret-test-secret-0123456789",
+  // Fixed 32-byte test key (0x00…0x1f). Must be set here rather than in a test's
+  // beforeAll: src/lib/env.ts parses process.env at import time.
+  ENCRYPTION_KEY: "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
 });

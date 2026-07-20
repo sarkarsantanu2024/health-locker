@@ -6,8 +6,8 @@ Running log of the phased build. A fresh session should read this first, then
 | Phase | Title | Status |
 | --- | --- | --- |
 | 0 | Scaffold (Vercel-ready) | ✅ Done — acceptance criteria met |
-| 1 | Data model (Neon + Prisma) | ⏭️ Next |
-| 2 | Auth (username/password, admin-provisioned) + RBAC + tenancy | ⬜ |
+| 1 | Data model (Neon + Prisma) | ✅ Done — acceptance criteria met |
+| 2 | Auth (username/password, admin-provisioned) + RBAC + tenancy | ⏭️ Next |
 | 3 | Patient core (records, timeline, family) | ⬜ |
 | 4 | Uploads + AI pipeline (serverless) | ⬜ |
 | 5 | Notifications (Web Push + in-app; no email) | ⬜ |
@@ -103,8 +103,78 @@ Running log of the phased build. A fresh session should read this first, then
    (login, app shell) exist, so we do not vendor unused components now.
 4. **`AI_PROVIDER=gemini|groq` throws by design** — those adapters are Phase 4.
    `mock` is the default everywhere including CI.
-5. **`ENCRYPTION_KEY` is defined but unused.** Column-level encryption lands with
-   the sensitive tables in Phase 1/13.
-6. **Prisma warns that `package.json#prisma` is deprecated** (removed in Prisma 7).
+5. **Prisma warns that `package.json#prisma` is deprecated** (removed in Prisma 7).
    Migrating to `prisma.config.ts` also disables Prisma's automatic `.env` loading,
    so it is deliberately postponed to the Phase 14 DevOps pass.
+
+*(`ENCRYPTION_KEY` unused — closed in Phase 1: it now backs `src/lib/crypto.ts`.)*
+
+---
+
+## Phase 1 — Data model (Neon + Prisma)
+
+**Decisions taken**
+
+- **Money is `Int` paise**, never a float, on every `*Minor` column. Floating-point
+  rupees drift, and this is billing data.
+- **`Patient` is separable from `User`.** A clinic registers walk-ins and children
+  rarely have logins, so requiring an account to hold a record would have forced
+  fake users.
+- **Tenancy for patient data runs through `PatientOrgLink`**, not a column on
+  `Patient`. A patient legitimately belongs to several providers; an `orgId` on
+  the patient would have made the second provider impossible.
+- **`FamilyLink` is directed.** Priya managing her child's record must not imply
+  the child manages hers. Mutual access is two rows, written deliberately.
+- **`PaymentSubmission.utr` is globally unique**, not unique per request. An Indian
+  bank reference identifies exactly one real transfer, so reuse across *different*
+  requests is the fraud case — per-request uniqueness would have missed it.
+- **`PaymentRequest.refCode` is short uppercase-alphanumeric**, not a cuid, because
+  it goes in the UPI deep link's `tr` parameter which several UPI apps truncate.
+- **Column encryption is AES-256-GCM with a `v1.` version prefix** so the key can
+  be rotated later without guessing at the payload shape.
+- **Permissions are seeded from code and revoked on re-seed.** Removing a grant in
+  `src/shared/permissions.ts` deletes the row; a stale grant is a security hole.
+
+**Shipped**
+
+- `prisma/schema.prisma` — ~45 models over six domains (identity, patient,
+  clinical, documents-ai, commerce, notify, ops) with `orgId` tenancy,
+  soft-delete, FKs, unique constraints and indexes throughout.
+- `src/shared/enums.ts` — every enum mirrored from Prisma, plus role/portal maps.
+- `src/shared/permissions.ts` — 53-action catalogue and the deny-by-default role
+  matrix, composed so an org admin is provably a superset of its staff role.
+- `src/lib/crypto.ts` — AES-256-GCM encrypt/decrypt, nullable helpers, identifier
+  masking, constant-time compare. Backs every `*Enc` column.
+- `prisma/seed.ts` — idempotent: permissions, 4 plans, 5 tenants, 2 departments,
+  1 practitioner, the demo family, and an encrypted platform merchant profile.
+  Creates **no** accounts unless `--demo-users` is passed (refused in production).
+- `docs/data-model.md` — ER description with mermaid diagrams per domain and the
+  reasoning behind the non-obvious choices.
+- `tests/data-model.integration.test.ts` + `vitest.integration.config.ts` — a
+  second, database-backed test project so `pnpm test` stays hermetic.
+- CI now migrates, seeds, bootstraps a Super Admin and runs both suites.
+
+**Verified**
+
+- `20260720121257_full_domain_model` applied to Neon; `prisma validate` clean.
+- Seed run twice — counts identical, so it is genuinely idempotent.
+- `pnpm test` 64/64 unit; `pnpm test:integration` 15/15 against live Neon.
+- Tenant scoping proven: the clinic query returns exactly Priya + Aarav, and
+  Sunita (hospital-registered) is absent. The reverse family link does not exist.
+- Encryption proven end to end: `upiVpaEnc` is stored as `v1.…` ciphertext,
+  contains no plaintext, and decrypts to the original.
+- `pnpm lint`, `pnpm typecheck`, `next build` all clean.
+
+**Open items / deferred**
+
+1. **No zod schemas yet.** Section 1 wants shared zod schemas as the source of
+   truth for input validation. Enums and the permission catalogue are in place;
+   the per-entity input schemas are written in Phase 2+ alongside the forms that
+   need them, rather than speculatively.
+2. **`PharmacyOrder.prescriptionId` is a plain column, not a foreign key.** It
+   points at a `Prescription` but is intentionally unconstrained until Phase 10
+   settles whether a pharmacy may dispense against an out-of-network Rx.
+3. **`Document.storageKey` rows can outlive their R2 object.** Orphan reaping is a
+   Phase 4 job route once uploads actually exist.
+4. **`create-super-admin` still writes a raw AuditLog row.** It should go through
+   the audit service once Phase 2 introduces one.
