@@ -19,6 +19,7 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "db:demo": "tsx prisma/demo.ts",
     "create-super-admin": "tsx scripts/create-super-admin.ts",
     "set-merchant-profile": "tsx scripts/set-merchant-profile.ts"
   },

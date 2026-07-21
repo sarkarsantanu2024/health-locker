@@ -83,9 +83,48 @@ const ORG_BY_ROLE: Partial<Record<Role, string>> = {
 const RENDER_ERROR =
   /Only plain objects can be passed|__next_error__|Unhandled Runtime Error|Server Error|Application error/i;
 
+/**
+ * Routes that MUST render with no session at all. A redirect to /login here is a
+ * bug, not a safeguard: /pay deadlocks onboarding (the payer has no account yet)
+ * and /emergency has to work when the patient cannot speak.
+ */
+async function checkPublicRoutes(): Promise<number> {
+  const liveRequest = await prisma.paymentRequest.findFirst({
+    where: { deletedAt: null },
+    orderBy: { createdAt: "desc" },
+    select: { refCode: true },
+  });
+
+  const routes = [
+    { path: "/login", mustContain: "Sign in" },
+    { path: "/signup", mustContain: "Create your" },
+    ...(liveRequest ? [{ path: `/pay/${liveRequest.refCode}`, mustContain: "Reference" }] : []),
+    // A bogus token must still render the public page, not a login redirect.
+    { path: `/emergency/${"0".repeat(32)}`, mustContain: "not available" },
+  ];
+
+  let failures = 0;
+
+  for (const route of routes) {
+    const response = await fetch(`${BASE}${route.path}`, { redirect: "manual" });
+    const body = response.status === 200 ? await response.text() : "";
+    // A 3xx means middleware bounced it to /login.
+    const ok = response.status === 200 && body.includes(route.mustContain);
+
+    if (!ok) failures += 1;
+    process.stdout.write(
+      `${ok ? "PASS" : "FAIL"}  ${"(public)".padEnd(18)} ${route.path.padEnd(42)} ${response.status}` +
+        (response.status >= 300 && response.status < 400 ? "   <- redirected, should be public" : "") +
+        "\n",
+    );
+  }
+
+  return failures;
+}
+
 async function main(): Promise<void> {
   const createdIds: string[] = [];
-  let failures = 0;
+  let failures = await checkPublicRoutes();
 
   try {
     for (const role of ROLES_UNDER_TEST) {

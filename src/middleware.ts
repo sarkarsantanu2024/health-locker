@@ -16,11 +16,27 @@ import { env } from "@/lib/env";
 const ACCESS_COOKIE = `${env.AUTH_COOKIE_PREFIX}_at`;
 
 /**
- * Reachable without a session. `/signup` is public but creates a
- * PENDING_ACTIVATION account that still cannot sign in until an admin verifies
- * payment — see modules/identity/signup.service.ts.
+ * Reachable without a session.
+ *
+ * `/signup` creates a PENDING_ACTIVATION account that still cannot sign in until
+ * an admin verifies payment — see modules/identity/signup.service.ts.
+ *
+ * `/pay` MUST be public: a self-registered consumer pays BEFORE their account is
+ * activated, so requiring a session here would deadlock onboarding entirely.
+ * The reference code is the only credential and it grants nothing but sight of
+ * the amount plus the ability to file a transaction reference; the action behind
+ * it is rate-limited per reference code.
+ *
+ * `/emergency` is public by design — it has to work when the patient cannot.
  */
-const PUBLIC_PATHS = ["/login", "/signup", "/api/v1/health", "/api/v1/auth/refresh", "/emergency"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/pay",
+  "/emergency",
+  "/api/v1/health",
+  "/api/v1/auth/refresh",
+];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
