@@ -81,6 +81,24 @@ export function SubmitPaymentForm({
       </div>
 
       <Field
+        label="Screenshot of the payment"
+        errors={state.fieldErrors?.screenshot}
+        hint="The confirmation screen from PhonePe, Google Pay, Paytm or your bank. JPG, PNG or PDF, up to 5 MB."
+      >
+        {(props) => (
+          <Input
+            {...props}
+            name="screenshot"
+            type="file"
+            // capture lets a phone open the camera directly for a paper receipt.
+            accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+            required
+            className="py-2 file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium"
+          />
+        )}
+      </Field>
+
+      <Field
         label="Your mobile number"
         errors={state.fieldErrors?.submitterPhone}
         hint="So we can reach you on WhatsApp when it is confirmed."

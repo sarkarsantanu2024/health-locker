@@ -12,6 +12,7 @@ import {
   rejectPayment,
   submitPayment,
 } from "@/modules/billing/payment.service";
+import { uploadFile } from "@/modules/documents/upload.service";
 import { getPatientContext } from "@/modules/patient/context";
 import { AppError } from "@/shared/errors";
 import {
@@ -103,11 +104,21 @@ export async function submitPaymentAction(
     utr: formData.get("utr"),
     method: formData.get("method") ?? "UPI",
     paidAt: formData.get("paidAt") ?? "",
-    proofDocumentId: formData.get("proofDocumentId") ?? "",
     submitterPhone: formData.get("submitterPhone") ?? "",
   });
 
   if (!parsed.success) return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
+
+  const screenshot = formData.get("screenshot");
+
+  // A UTR alone is trivially fabricated; a screenshot plus a UTR is not. The
+  // reviewer checks both against the bank statement, so the proof is mandatory.
+  if (!(screenshot instanceof File) || screenshot.size === 0) {
+    return {
+      ok: false,
+      fieldErrors: { screenshot: ["Attach a screenshot of the payment confirmation."] },
+    };
+  }
 
   try {
     // Unauthenticated endpoint, so it is throttled by reference code — guessing
@@ -122,12 +133,25 @@ export async function submitPaymentAction(
 
     const session = await getSession();
 
+    const request = await prisma.paymentRequest.findFirst({
+      where: { refCode: parsed.data.refCode, deletedAt: null },
+      select: { patientId: true, orgId: true },
+    });
+
+    const proof = await uploadFile(screenshot, {
+      kind: "PAYMENT_PROOF",
+      patientId: request?.patientId ?? null,
+      orgId: request?.orgId ?? null,
+      uploadedById: session?.id ?? null,
+      prefix: "payment-proof",
+    });
+
     await submitPayment({
       refCode: parsed.data.refCode,
       utr: parsed.data.utr,
       method: parsed.data.method,
       paidAt: parsed.data.paidAt,
-      proofDocumentId: parsed.data.proofDocumentId || null,
+      proofDocumentId: proof.documentId,
       submittedById: session?.id ?? null,
       submitterPhone: parsed.data.submitterPhone || null,
     });

@@ -1152,6 +1152,7 @@ model Document {
   deletedAt DateTime?
 
   ocrResult          OcrResult?
+  blob               DocumentBlob?
   aiJobs             AiJob[]
   aiSummaries        AiSummary[]
   prescriptions      Prescription[]
@@ -1164,6 +1165,20 @@ model Document {
   @@index([patientId, createdAt])
   @@index([orgId, createdAt])
   @@index([kind, status])
+}
+
+/// Fallback object store for deployments with no R2 configured.
+///
+/// Bytes live in their own table so that listing Documents never drags image
+/// data across the wire. This is a stop-gap for low volume — Postgres is a poor
+/// blob store — and `src/lib/storage.ts` switches to R2 automatically the moment
+/// its credentials appear, with no change to calling code.
+model DocumentBlob {
+  documentId  String   @id
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  bytes       Bytes
+  contentType String
+  createdAt   DateTime @default(now())
 }
 
 model OcrResult {

@@ -31,8 +31,6 @@ export const submitPaymentSchema = z.object({
     .or(z.literal(""))
     .transform((v) => (v ? new Date(v) : null))
     .refine((d) => !d || !Number.isNaN(d.getTime()), "Enter a valid date"),
-  /** Only present once R2 uploads exist (Phase 4). */
-  proofDocumentId: z.string().optional().or(z.literal("")),
   /** For a payer with no account yet. */
   submitterPhone: z
     .string()

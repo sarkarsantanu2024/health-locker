@@ -478,6 +478,8 @@ export async function listPendingSubmissions(orgId?: string | null) {
       paidAt: true,
       submittedAt: true,
       submitterPhone: true,
+      proofDocumentId: true,
+      proofDocument: { select: { id: true, fileName: true, mimeType: true } },
       submittedBy: { select: { username: true, displayName: true } },
       paymentRequest: {
         select: {
