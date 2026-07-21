@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { NativeBridge } from "@/modules/pwa/native-bridge";
 import { ServiceWorkerRegistrar } from "@/modules/pwa/service-worker";
 
 import "./globals.css";
@@ -72,6 +73,8 @@ export default function RootLayout({
         {/* Registers the offline shell and the push handler for every visitor,
             installed or not. */}
         <ServiceWorkerRegistrar />
+        {/* No-ops outside the Android shell, and downloads nothing there. */}
+        <NativeBridge />
       </body>
     </html>
   );

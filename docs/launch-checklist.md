@@ -140,3 +140,52 @@ These are decisions, not oversights. Each one is safe to launch with.
 | **No WhatsApp adapter** | Messages are sent by hand via `wa.me` links, and the `NotificationLog` row is the same shape an adapter would write. | A provider account; the audit trail does not change. |
 | **Timeline paginates by cap, not cursor** | 200 rows per source is well beyond a real patient's volume today. | A cursor once anyone has thousands of entries. |
 | **Ads beside medical records** | Requested in the Phase 11 brief, deliberately not built: serving a third-party ad next to a diagnosis leaks the diagnosis through targeting. | A first-party, non-targeted placement — a product decision, not a technical one. |
+
+---
+
+## 6. The Android app
+
+HealthLocker ships as a Capacitor shell around the deployed site. **It is not a
+static bundle, and cannot be**: every screen is server-rendered behind an auth
+guard and every mutation is a server action, so there is nothing to package. The
+APK is a WebView pinned to your origin.
+
+What it gives you over a browser tab: a home-screen icon, a native splash
+screen, no address bar, the hardware back button wired to in-app history, and a
+real package for Play. What it does not give you is offline — health records are
+deliberately never cached.
+
+### Build it
+
+```bash
+# One-off, if android/ is not present
+CAP_SERVER_URL=https://your-domain pnpm android:add
+
+# Every time the shell config or plugins change
+CAP_SERVER_URL=https://your-domain pnpm android:sync
+
+# Debug APK -> android/app/build/outputs/apk/debug/app-debug.apk
+CAP_SERVER_URL=https://your-domain pnpm android:apk
+
+# Or open in Android Studio to build a signed release
+pnpm android:open
+```
+
+`CAP_SERVER_URL` has no default on purpose. An APK built against `localhost`
+installs fine and then shows a blank screen on a real phone, and nothing about
+that failure points at the cause.
+
+### Requirements
+
+- **JDK 21** and the **Android SDK**. Installing Android Studio gets you both.
+- `ANDROID_HOME` set, or `android/local.properties` pointing at the SDK.
+- For Play: a signed release build (`assembleRelease` with a keystore) and a
+  one-off $25 developer account.
+
+### Before you publish
+
+- Point `CAP_SERVER_URL` at production, not at a preview deployment.
+- Set the VAPID keys first — push is most of the reason to have an app at all.
+- Bump `versionCode` and `versionName` in `android/app/build.gradle`.
+- Replace the generated launcher icons in `android/app/src/main/res/mipmap-*`.
+  The defaults are Capacitor's placeholder, not the HealthLocker mark.

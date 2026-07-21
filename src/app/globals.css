@@ -3,11 +3,12 @@
 /*
  * DESIGN TOKENS
  *
- * Two surfaces of the same product:
- *   - Patient portal — warm, spacious, large touch targets. Used occasionally,
- *     often on a phone, sometimes by an anxious or elderly person.
- *   - Provider console — dense and scannable. Used all day by someone who knows
- *     it well and needs to see forty rows without scrolling.
+ * Three surfaces of the same product:
+ *   - Marketing — the public site. Confident, spacious, sells trust.
+ *   - Patient app — warm, large touch targets, behaves like a native Android
+ *     app on a phone. Used occasionally, often by an anxious or elderly person.
+ *   - Provider console — denser and scannable, but still a product rather than
+ *     an admin panel. Used all day by someone who knows it well.
  * They share every token below; they differ in spacing, radius and type scale.
  *
  * Colours are chosen for WCAG AA against their own background in BOTH themes.
@@ -16,59 +17,71 @@
 
 :root {
   /* Surfaces */
-  --background: #f6f7f9;
+  --background: #f7f9fa;
   --surface: #ffffff;
-  --surface-2: #f1f3f6;
-  --foreground: #0f1729;
-  --muted: #eef1f5;
-  --muted-foreground: #58627a;
-  --border: #e2e6ec;
-  --border-strong: #cbd2dd;
+  --surface-2: #f0f4f5;
+  --foreground: #0b1b1f;
+  --muted: #eaf0f1;
+  --muted-foreground: #55676d;
+  --border: #e0e8ea;
+  --border-strong: #c6d3d6;
 
-  /* Brand — teal reads as clinical without the coldness of pure blue */
-  --primary: #0d7266;
-  --primary-hover: #0a5c53;
+  /* Brand — teal reads as clinical without the coldness of pure blue. */
+  --primary: #0f7a6c;
+  --primary-hover: #0b6053;
   --primary-foreground: #ffffff;
-  --primary-subtle: #e2f2ef;
+  --primary-subtle: #e0f3f0;
+  /* A lighter partner used only in gradients and illustration, never for text. */
+  --primary-bright: #22b8a0;
 
-  /* Warmth, used sparingly and only in the patient portal */
+  /* Warmth, used sparingly and only on consumer surfaces. */
   --accent: #b45309;
   --accent-subtle: #fdf3e7;
 
   /* Semantic */
-  --success: #066d47;
-  --success-subtle: #e4f4ec;
-  --warning: #9a5b06;
+  --success: #06694a;
+  --success-subtle: #e2f4ec;
+  --warning: #92590a;
   --warning-subtle: #fdf2e2;
   --danger: #ab2117;
   --danger-subtle: #fdeceb;
-  --info: #155ac0;
+  --info: #14539f;
   --info-subtle: #e8f0fd;
 
-  /* Elevation — deliberately soft; a health record is not a casino */
-  --shadow-sm: 0 1px 2px 0 rgb(15 23 41 / 0.05);
-  --shadow-md: 0 2px 4px -1px rgb(15 23 41 / 0.06), 0 4px 12px -2px rgb(15 23 41 / 0.08);
-  --shadow-lg: 0 8px 24px -4px rgb(15 23 41 / 0.12);
+  /*
+   * Elevation. Two-layer shadows — a tight contact shadow plus a wide ambient
+   * one — read as depth rather than as a grey box, which is what a single
+   * large blur produces.
+   */
+  --shadow-sm: 0 1px 2px -1px rgb(11 27 31 / 0.08), 0 1px 3px 0 rgb(11 27 31 / 0.04);
+  --shadow-md: 0 2px 4px -2px rgb(11 27 31 / 0.08), 0 6px 16px -4px rgb(11 27 31 / 0.1);
+  --shadow-lg: 0 4px 8px -4px rgb(11 27 31 / 0.1), 0 16px 40px -8px rgb(11 27 31 / 0.16);
+  --shadow-xl: 0 8px 16px -8px rgb(11 27 31 / 0.12), 0 32px 64px -16px rgb(11 27 31 / 0.2);
 
-  --radius-console: 0.5rem;
-  --radius-consumer: 1rem;
+  --radius-console: 0.625rem;
+  --radius-consumer: 1.25rem;
+
+  /* App chrome. Kept as tokens so the shells and the safe-area padding agree. */
+  --app-bar-height: 3.5rem;
+  --app-tabbar-height: 4rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0e14;
-    --surface: #121822;
-    --surface-2: #19202c;
-    --foreground: #e7edf6;
-    --muted: #1a212d;
-    --muted-foreground: #97a3b8;
-    --border: #232c3a;
-    --border-strong: #33405280;
+    --background: #070d0f;
+    --surface: #101a1d;
+    --surface-2: #162326;
+    --foreground: #e6eff0;
+    --muted: #172225;
+    --muted-foreground: #93a5a9;
+    --border: #1f2e32;
+    --border-strong: #2f4247;
 
     --primary: #35c9b5;
     --primary-hover: #4dd8c5;
     --primary-foreground: #04231f;
-    --primary-subtle: #10312d;
+    --primary-subtle: #0e2f2b;
+    --primary-bright: #5fe0cb;
 
     --accent: #f0a55c;
     --accent-subtle: #2c1f11;
@@ -82,9 +95,10 @@
     --info: #77aaf5;
     --info-subtle: #101f36;
 
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
-    --shadow-md: 0 2px 4px -1px rgb(0 0 0 / 0.45), 0 4px 12px -2px rgb(0 0 0 / 0.5);
-    --shadow-lg: 0 8px 24px -4px rgb(0 0 0 / 0.6);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+    --shadow-md: 0 2px 4px -1px rgb(0 0 0 / 0.5), 0 6px 16px -4px rgb(0 0 0 / 0.55);
+    --shadow-lg: 0 4px 8px -4px rgb(0 0 0 / 0.6), 0 16px 40px -8px rgb(0 0 0 / 0.65);
+    --shadow-xl: 0 8px 16px -8px rgb(0 0 0 / 0.7), 0 32px 64px -16px rgb(0 0 0 / 0.75);
   }
 }
 
@@ -110,6 +124,7 @@
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-subtle: var(--primary-subtle);
+  --color-primary-bright: var(--primary-bright);
 
   --color-accent: var(--accent);
   --color-accent-subtle: var(--accent-subtle);
@@ -126,12 +141,21 @@
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
 
   --radius-console: var(--radius-console);
   --radius-consumer: var(--radius-consumer);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Display sizes for the marketing site, which needs to be louder than the app. */
+  --text-display: 3rem;
+  --text-display--line-height: 1.06;
+  --text-display--letter-spacing: -0.03em;
+  --text-display-lg: 4rem;
+  --text-display-lg--line-height: 1.03;
+  --text-display-lg--letter-spacing: -0.035em;
 }
 
 body {
@@ -139,6 +163,7 @@ body {
   /* Tabular figures keep dosages, amounts and counts from jittering as they update. */
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* One focus treatment everywhere, and it is never removed (WCAG 2.4.7). */
@@ -146,6 +171,111 @@ body {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+ * NATIVE-APP BEHAVIOUR
+ *
+ * What separates "a website in a browser" from "an app" on a phone is mostly
+ * these six things, not the layout.
+ * ------------------------------------------------------------------------- */
+
+html {
+  /* Stops the whole page rubber-banding when a list is scrolled to its end,
+     which is the single biggest tell that you are looking at a web page. */
+  overscroll-behavior-y: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  /* Momentum scrolling inside the WebView. */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* No grey flash on tap — Android's default highlight looks like a mis-tap. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Removes the 300ms click delay without disabling pinch-zoom on content. */
+:where(a, button, [role="button"], input, select, textarea, label) {
+  touch-action: manipulation;
+}
+
+/*
+ * Chrome — app bars, tab bars, buttons — is not text to be selected. Long-press
+ * selecting the word "Medicines" out of a tab bar is a web behaviour that reads
+ * as broken in an app. Content stays selectable.
+ */
+:where(nav, header, [data-app-chrome]) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Safe areas, so content clears the notch and the gesture bar once installed. */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.h-app-bar {
+  height: calc(var(--app-bar-height) + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+}
+
+/*
+ * Press feedback. A native control responds the instant your finger lands;
+ * a hover style does nothing on a touchscreen, so the app leans on :active.
+ */
+.press {
+  transition:
+    transform 120ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 120ms ease,
+    opacity 120ms ease;
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* Entrance for a pushed screen — brief, and skipped under reduced motion. */
+@keyframes app-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-app-enter {
+  animation: app-enter 220ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* Marketing gradients, defined once so the brand stays one colour story. */
+.bg-brand-gradient {
+  background-image: linear-gradient(135deg, var(--primary) 0%, var(--primary-bright) 100%);
+}
+.text-brand-gradient {
+  background-image: linear-gradient(135deg, var(--primary) 0%, var(--primary-bright) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* A soft radial wash behind hero sections. */
+.bg-hero-wash {
+  background-image:
+    radial-gradient(60rem 30rem at 15% -10%, var(--primary-subtle) 0%, transparent 60%),
+    radial-gradient(40rem 24rem at 95% 0%, var(--accent-subtle) 0%, transparent 55%);
+}
+
+/* Hides scrollbars on horizontal chip rails without disabling scrolling. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -156,5 +286,21 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .press:active {
+    transform: none;
+  }
+}
+
+/* Printed prescriptions and reports: no chrome, no colour, black on white. */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  [data-app-chrome] {
+    display: none !important;
   }
 }

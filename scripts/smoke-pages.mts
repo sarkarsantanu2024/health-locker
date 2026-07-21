@@ -110,6 +110,11 @@ async function checkPublicRoutes(): Promise<number> {
   });
 
   const routes = [
+    // The marketing site. `/` must render the pitch for an anonymous visitor
+    // rather than bouncing to /login, which is what it did before the public
+    // site existed.
+    { path: "/", mustContain: "in one place" },
+    { path: "/pricing", mustContain: "pricing" },
     { path: "/login", mustContain: "Sign in" },
     { path: "/signup", mustContain: "Create your" },
     ...(liveRequest ? [{ path: `/pay/${liveRequest.refCode}`, mustContain: "Reference" }] : []),

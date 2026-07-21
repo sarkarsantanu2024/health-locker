@@ -23,11 +23,21 @@
     "db:demo": "tsx prisma/demo.ts",
     "create-super-admin": "tsx scripts/create-super-admin.ts",
     "set-merchant-profile": "tsx scripts/set-merchant-profile.ts",
-    "vercel-build": "prisma generate && prisma migrate deploy && next build"
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "android:shell": "tsx scripts/build-android.mts",
+    "android:add": "pnpm android:shell && cap add android",
+    "android:sync": "pnpm android:shell && cap sync android",
+    "android:open": "cap open android",
+    "android:apk": "pnpm android:sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.699.0",
     "@aws-sdk/s3-request-presigner": "^3.699.0",
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@hookform/resolvers": "^3.9.1",
     "@node-rs/argon2": "^2.0.2",
     "@prisma/client": "^6.2.1",
@@ -50,6 +60,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
