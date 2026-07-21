@@ -1,3 +1,4 @@
+import { Users } from "lucide-react";
 import type { Metadata } from "next";
 
 import { prisma } from "@/lib/db";
@@ -5,6 +6,7 @@ import { FamilyClient } from "@/app/(app)/patient/family/family-client";
 import { getPatientContext } from "@/modules/patient/context";
 import { listFamily } from "@/modules/patient/patient.service";
 import { PageHeader } from "@/ui/page-header";
+import { toneFor } from "@/ui/tone";
 
 export const metadata: Metadata = { title: "Family" };
 export const dynamic = "force-dynamic";
@@ -28,6 +30,8 @@ export default async function FamilyPage() {
     <>
       <PageHeader
         title="Family"
+        icon={Users}
+        tone={toneFor("family")}
         description="Switch between records and manage who you can act for."
       />
 

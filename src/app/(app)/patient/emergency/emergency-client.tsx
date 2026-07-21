@@ -13,8 +13,13 @@ import { Alert } from "@/ui/alert";
 import { Button } from "@/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/card";
 import { Label } from "@/ui/field";
+import { EmptyState } from "@/ui/page-header";
+import { toneFor } from "@/ui/tone";
 
 const initial: PatientActionState = { ok: false };
+
+/** The emergency card is an alert-coloured thing: rose, like allergies. */
+const EMERGENCY_TONE = toneFor("alert");
 
 export interface ActiveCard {
   url: string;
@@ -61,7 +66,7 @@ export function EmergencyClient({ card, readOnly }: { card: ActiveCard | null; r
       {message ? <Alert tone="success">{message}</Alert> : null}
 
       {card ? (
-        <Card tone="consumer">
+        <Card tone="consumer" hue={EMERGENCY_TONE}>
           <CardHeader>
             <CardTitle>Your active card</CardTitle>
             <CardDescription>
@@ -140,8 +145,17 @@ export function EmergencyClient({ card, readOnly }: { card: ActiveCard | null; r
         </Card>
       ) : null}
 
+      {!card && readOnly ? (
+        <EmptyState
+          art="shield"
+          tone={EMERGENCY_TONE}
+          title="No emergency card yet"
+          description="Only someone with manage access to this record can issue one."
+        />
+      ) : null}
+
       {!readOnly ? (
-        <Card tone="consumer">
+        <Card tone="consumer" hue={EMERGENCY_TONE}>
           <CardHeader>
             <CardTitle>{card ? "Issue a replacement" : "Create a card"}</CardTitle>
             <CardDescription>

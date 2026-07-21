@@ -1,3 +1,4 @@
+import { Pill } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -5,6 +6,7 @@ import { getPatientContext } from "@/modules/patient/context";
 import { listDosesForDay, listSchedules } from "@/modules/patient/medication.service";
 import { Alert } from "@/ui/alert";
 import { PageHeader } from "@/ui/page-header";
+import { toneFor } from "@/ui/tone";
 
 import { AddScheduleForm, ScheduleList, TodayDoses } from "./medicines-client";
 
@@ -30,6 +32,8 @@ export default async function MedicinesPage() {
     <>
       <PageHeader
         title="Medicines"
+        icon={Pill}
+        tone={toneFor("medicine")}
         description={
           context.isActingForOther
             ? `${context.patientName}'s medicines`

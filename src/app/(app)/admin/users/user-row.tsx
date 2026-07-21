@@ -10,10 +10,12 @@ import {
   type ActionState,
 } from "@/modules/identity/actions";
 import { CredentialsPanel } from "@/modules/admin/credentials-panel";
+import { cn } from "@/lib/utils";
 import { Alert } from "@/ui/alert";
 import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
 import { Field, Input } from "@/ui/field";
+import { TONE_STYLES, toneFromString } from "@/ui/tone";
 
 const initial: ActionState = { ok: false };
 
@@ -60,6 +62,18 @@ export function UserRow({ user }: { user: AdminUserRow }) {
   return (
     <li className="border-b border-border last:border-b-0">
       <div className="flex flex-wrap items-center gap-3 p-4">
+        {/* Same initial-in-a-hue as the sidebar avatar, from the same function,
+            so a person is one colour wherever they are listed. */}
+        <span
+          aria-hidden
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+            TONE_STYLES[toneFromString(user.displayName)].chipSolid,
+          )}
+        >
+          {user.displayName.trim().charAt(0).toUpperCase() || "?"}
+        </span>
+
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium">{user.displayName}</span>

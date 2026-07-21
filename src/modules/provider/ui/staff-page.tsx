@@ -1,3 +1,5 @@
+import { UserCog } from "lucide-react";
+
 import { UserRow } from "@/app/(app)/admin/users/user-row";
 import { requireTenantPermission } from "@/lib/auth/session";
 import { listUsers } from "@/modules/admin/admin.service";
@@ -5,6 +7,7 @@ import { CreateStaffForm } from "@/modules/provider/ui/staff-client";
 import { ORG_TYPE_BY_ROLE, ROLES, type Role } from "@/shared/enums";
 import { Card, CardContent } from "@/ui/card";
 import { EmptyState, PageHeader } from "@/ui/page-header";
+import { toneFor } from "@/ui/tone";
 
 /**
  * Staff management inside a provider console.
@@ -30,6 +33,8 @@ export async function ProviderStaffPage() {
     <>
       <PageHeader
         title="Staff"
+        icon={UserCog}
+        tone={toneFor("staff")}
         description={`${result.total} account${result.total === 1 ? "" : "s"} in this organisation. Passwords can only ever be reset to a temporary one — never read, never chosen.`}
         action={<CreateStaffForm roles={assignableRoles} />}
       />
@@ -38,6 +43,8 @@ export async function ProviderStaffPage() {
         <EmptyState
           title="No staff accounts yet"
           description="Create one for each person who signs in. Sharing a login makes the audit trail useless."
+          art="people"
+          tone={toneFor("staff")}
         />
       ) : (
         <Card>

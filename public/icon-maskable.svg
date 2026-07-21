@@ -1,10 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="HealthLocker">
   <!-- Maskable: artwork stays inside the safe zone (centre 80%) so Android can
-       crop this to a circle, squircle or rounded square without clipping it. -->
-  <rect width="512" height="512" fill="#0d7266"/>
+       crop this to a circle, squircle or rounded square without clipping it.
+       Same mark as public/icon.svg and <LogoMark> — edit all three together. -->
+  <defs>
+    <linearGradient id="hl-icon-maskable" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f7a6c"/>
+      <stop offset="100%" stop-color="#22b8a0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#hl-icon-maskable)"/>
   <g transform="translate(256 256) scale(0.78) translate(-256 -256)">
-    <path d="M176 216v-40a80 80 0 0 1 160 0v40" fill="none" stroke="#ffffff" stroke-width="34" stroke-linecap="round" opacity="0.85"/>
+    <path d="M176 216v-40a80 80 0 0 1 160 0v40" fill="none" stroke="#ffffff" stroke-width="34" stroke-linecap="round" opacity="0.9"/>
     <rect x="136" y="216" width="240" height="184" rx="32" fill="#ffffff"/>
-    <path d="M256 268v80M216 308h80" stroke="#0d7266" stroke-width="30" stroke-linecap="round"/>
+    <path d="M256 262v92M210 308h92" stroke="#0f7a6c" stroke-width="30" stroke-linecap="round"/>
+    <path d="M168 362h34l16-30 22 52 18-36 14 22h44" fill="none" stroke="#22b8a0" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
   </g>
 </svg>

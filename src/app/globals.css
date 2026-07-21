@@ -37,6 +37,48 @@
   /* Warmth, used sparingly and only on consumer surfaces. */
   --accent: #b45309;
   --accent-subtle: #fdf3e7;
+  --accent-bright: #f59e0b;
+
+  /*
+   * CATEGORY HUES
+   *
+   * Health data arrives in kinds — prescriptions, reports, medicines, vaccines,
+   * insurance, expenses — and a locker full of identical teal cards is a locker
+   * you have to read rather than scan. Each kind owns a hue, so colour carries
+   * meaning instead of decoration, and the same hue means the same thing on
+   * every surface.
+   *
+   * Six hues, evenly spaced round the wheel, each a triple:
+   *   --x         text/icon weight, AA on --surface and on --x-subtle
+   *   --x-subtle  tint for chips and card washes
+   *   --x-bright  gradient partner and illustration only — never text
+   *
+   * Colour is never the only signal: every tinted thing also carries an icon or
+   * a label (WCAG 1.4.1).
+   */
+  --hue-teal: #0f7a6c;
+  --hue-teal-subtle: #e0f3f0;
+  --hue-teal-bright: #22b8a0;
+
+  --hue-violet: #6d28d9;
+  --hue-violet-subtle: #f1eafe;
+  --hue-violet-bright: #a78bfa;
+
+  --hue-rose: #be123c;
+  --hue-rose-subtle: #ffe8ee;
+  --hue-rose-bright: #fb7185;
+
+  --hue-amber: #a35709;
+  --hue-amber-subtle: #fdf1e0;
+  --hue-amber-bright: #f59e0b;
+
+  --hue-sky: #0369a1;
+  --hue-sky-subtle: #e2f2fd;
+  --hue-sky-bright: #38bdf8;
+
+  --hue-emerald: #047857;
+  --hue-emerald-subtle: #e3f6ec;
+  --hue-emerald-bright: #34d399;
 
   /* Semantic */
   --success: #06694a;
@@ -85,6 +127,34 @@
 
     --accent: #f0a55c;
     --accent-subtle: #2c1f11;
+    --accent-bright: #fbbf24;
+
+    /* Same six hues, re-derived for a dark background: lighter text weights,
+       near-black tints. The bright partners stay bright — they only ever sit
+       inside gradients and artwork. */
+    --hue-teal: #35c9b5;
+    --hue-teal-subtle: #0e2f2b;
+    --hue-teal-bright: #5fe0cb;
+
+    --hue-violet: #b39cfb;
+    --hue-violet-subtle: #201a3a;
+    --hue-violet-bright: #c4b5fd;
+
+    --hue-rose: #fb8ca4;
+    --hue-rose-subtle: #351520;
+    --hue-rose-bright: #fda4af;
+
+    --hue-amber: #f2b155;
+    --hue-amber-subtle: #2f2211;
+    --hue-amber-bright: #fbbf24;
+
+    --hue-sky: #6cb6f2;
+    --hue-sky-subtle: #10243a;
+    --hue-sky-bright: #7dd3fc;
+
+    --hue-emerald: #4fd398;
+    --hue-emerald-subtle: #0c2a1f;
+    --hue-emerald-bright: #6ee7b7;
 
     --success: #63d9a0;
     --success-subtle: #0d2a1e;
@@ -128,6 +198,26 @@
 
   --color-accent: var(--accent);
   --color-accent-subtle: var(--accent-subtle);
+  --color-accent-bright: var(--accent-bright);
+
+  --color-teal: var(--hue-teal);
+  --color-teal-subtle: var(--hue-teal-subtle);
+  --color-teal-bright: var(--hue-teal-bright);
+  --color-violet: var(--hue-violet);
+  --color-violet-subtle: var(--hue-violet-subtle);
+  --color-violet-bright: var(--hue-violet-bright);
+  --color-rose: var(--hue-rose);
+  --color-rose-subtle: var(--hue-rose-subtle);
+  --color-rose-bright: var(--hue-rose-bright);
+  --color-amber: var(--hue-amber);
+  --color-amber-subtle: var(--hue-amber-subtle);
+  --color-amber-bright: var(--hue-amber-bright);
+  --color-sky: var(--hue-sky);
+  --color-sky-subtle: var(--hue-sky-subtle);
+  --color-sky-bright: var(--hue-sky-bright);
+  --color-emerald: var(--hue-emerald);
+  --color-emerald-subtle: var(--hue-emerald-subtle);
+  --color-emerald-bright: var(--hue-emerald-bright);
 
   --color-success: var(--success);
   --color-success-subtle: var(--success-subtle);
@@ -268,6 +358,57 @@ body {
   background-image:
     radial-gradient(60rem 30rem at 15% -10%, var(--primary-subtle) 0%, transparent 60%),
     radial-gradient(40rem 24rem at 95% 0%, var(--accent-subtle) 0%, transparent 55%);
+}
+
+/*
+ * A per-hue gradient, driven by two custom properties rather than twelve
+ * hard-coded classes. Anything that wants colour sets --g-from / --g-to:
+ *
+ *   <span class="bg-hue-gradient [--g-from:var(--hue-violet)] [--g-to:var(--hue-violet-bright)]">
+ *
+ * or, more usually, gets them from the tone table in src/ui/tone.ts.
+ */
+.bg-hue-gradient {
+  background-image: linear-gradient(135deg, var(--g-from, var(--primary)) 0%, var(--g-to, var(--primary-bright)) 100%);
+}
+.text-hue-gradient {
+  background-image: linear-gradient(135deg, var(--g-from, var(--primary)) 0%, var(--g-to, var(--primary-bright)) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/*
+ * A card that is tinted by its hue without losing the surface underneath it.
+ * The wash is a corner-anchored radial rather than a flat fill, so a grid of
+ * these reads as lit from one direction instead of as six coloured rectangles.
+ */
+.bg-hue-wash {
+  background-image: radial-gradient(
+    24rem 12rem at 100% 0%,
+    color-mix(in oklab, var(--g-to, var(--primary-bright)) 14%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+/*
+ * The decorative multi-hue backdrop behind heroes and empty states. Four soft
+ * radials at low opacity — enough colour to feel alive, never enough to fight
+ * the text sitting on top (contrast is measured against --background, which
+ * these do not meaningfully shift).
+ */
+.bg-mesh {
+  background-image:
+    radial-gradient(38rem 22rem at 8% -8%, color-mix(in oklab, var(--hue-teal-bright) 20%, transparent) 0%, transparent 60%),
+    radial-gradient(32rem 20rem at 96% 4%, color-mix(in oklab, var(--hue-violet-bright) 16%, transparent) 0%, transparent 58%),
+    radial-gradient(30rem 18rem at 70% 96%, color-mix(in oklab, var(--hue-sky-bright) 14%, transparent) 0%, transparent 60%),
+    radial-gradient(26rem 16rem at 20% 100%, color-mix(in oklab, var(--hue-amber-bright) 12%, transparent) 0%, transparent 60%);
+}
+
+/* A hairline of brand colour along the top of a panel or card. */
+.border-t-brand {
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(90deg, var(--g-from, var(--primary)), var(--g-to, var(--primary-bright))) 1;
 }
 
 /* Hides scrollbars on horizontal chip rails without disabling scrolling. */

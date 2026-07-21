@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { NAV_BY_ROLE, type NavItem } from "@/modules/identity/navigation";
 import type { Role } from "@/shared/enums";
 import type { PermissionKey } from "@/shared/permissions";
+import { Logo } from "@/ui/logo";
+import { TONE_STYLES, toneFor, type Tone } from "@/ui/tone";
 
 /**
  * Patient shell — an Android app that happens to be built with web technology.
@@ -50,6 +52,31 @@ function currentItem(pathname: string, nav: NavItem[]): NavItem | undefined {
   return [...nav]
     .sort((a, b) => b.href.length - a.href.length)
     .find((item) => isActive(pathname, item.href));
+}
+
+/**
+ * A tab carries the hue of the thing behind it, not the brand's.
+ *
+ * A single teal indicator tells you only *that* something is selected; six hues
+ * tell you *which*, and they are the same six the destination screen is painted
+ * in — so the tab bar becomes a legend for the app rather than decoration.
+ * Domains that already own a hue read it out of `DOMAIN_TONE`; the rest are
+ * spelled here because they are shell concepts, not record kinds.
+ */
+const NAV_TONE: Record<string, Tone> = {
+  "/patient": "teal", // home wears the brand
+  "/patient/timeline": toneFor("document"),
+  "/patient/medicines": toneFor("medicine"),
+  "/patient/reports": toneFor("report"),
+  "/patient/family": toneFor("family"),
+  "/patient/emergency": toneFor("alert"),
+  "/patient/billing": toneFor("expense"),
+  "/notifications": toneFor("expense"),
+  "/account": toneFor("vaccination"),
+};
+
+function navTone(href: string): Tone {
+  return NAV_TONE[href] ?? "teal";
 }
 
 export function ConsumerShell({
@@ -113,17 +140,9 @@ export function ConsumerShell({
         <div className="mx-auto flex h-app-bar max-w-3xl items-center gap-3 px-4">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
             {title === "HealthLocker" ? (
-              <>
-                <span
-                  aria-hidden
-                  className="flex size-8 items-center justify-center rounded-xl bg-brand-gradient text-xs font-bold text-white"
-                >
-                  H
-                </span>
-                <span className="truncate text-base font-semibold tracking-tight">
-                  HealthLocker
-                </span>
-              </>
+              /* The real mark, not a letter in a box: this is the one screen
+                 that is branding rather than a named destination. */
+              <Logo size="sm" className="min-w-0" />
             ) : (
               <h1 className="truncate text-lg font-semibold tracking-tight">{title}</h1>
             )}
@@ -150,6 +169,7 @@ export function ConsumerShell({
             {nav.map((item) => {
               const current = isActive(pathname, item.href);
               const Icon = item.icon;
+              const style = TONE_STYLES[navTone(item.href)];
 
               return (
                 <li key={item.href}>
@@ -159,7 +179,7 @@ export function ConsumerShell({
                     className={cn(
                       "flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition-colors",
                       current
-                        ? "bg-primary-subtle font-medium text-primary"
+                        ? cn("font-medium", style.chipSolid)
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >
@@ -215,6 +235,7 @@ export function ConsumerShell({
             <ul className="p-3">
               {overflow.map((item) => {
                 const Icon = item.icon;
+                const style = TONE_STYLES[navTone(item.href)];
 
                 return (
                   <li key={item.href}>
@@ -222,7 +243,12 @@ export function ConsumerShell({
                       href={item.href}
                       className="press flex items-center gap-3.5 rounded-xl px-3 py-3.5 hover:bg-muted"
                     >
-                      <span className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                      <span
+                        className={cn(
+                          "flex size-10 items-center justify-center rounded-xl",
+                          style.chipSolid,
+                        )}
+                      >
                         <Icon aria-hidden className="size-5" />
                       </span>
                       <span className="font-medium">{item.label}</span>
@@ -247,6 +273,7 @@ export function ConsumerShell({
           {tabs.map((item) => {
             const current = isActive(pathname, item.href);
             const Icon = item.icon;
+            const style = TONE_STYLES[navTone(item.href)];
 
             return (
               <li key={item.href} className="flex-1">
@@ -256,11 +283,12 @@ export function ConsumerShell({
                   className="press flex h-16 flex-col items-center justify-center gap-1 px-1"
                 >
                   {/* Material's active pill: the indicator, not the icon
-                      colour, is what reads at a glance. */}
+                      colour, is what reads at a glance — and it is the
+                      destination's own hue, so the bar doubles as a legend. */}
                   <span
                     className={cn(
                       "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
-                      current ? "bg-primary-subtle text-primary" : "text-muted-foreground",
+                      current ? style.chipSolid : "text-muted-foreground",
                     )}
                   >
                     <Icon aria-hidden className="size-5" />
@@ -268,7 +296,7 @@ export function ConsumerShell({
                   <span
                     className={cn(
                       "truncate text-[11px]",
-                      current ? "font-medium text-primary" : "text-muted-foreground",
+                      current ? cn("font-medium", style.text) : "text-muted-foreground",
                     )}
                   >
                     {item.label}

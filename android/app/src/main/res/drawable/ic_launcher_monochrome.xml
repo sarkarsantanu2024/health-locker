@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Themed-icon layer (Android 13+). The launcher throws away these colours and
+  re-tints the shape with the wallpaper palette, so this is the mark as a single
+  flat silhouette: shackle, locker, and the cross knocked out of it. The pulse
+  is dropped — at 48dp in one colour it turns into a smudge.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <group
+        android:pivotX="256"
+        android:pivotY="256"
+        android:scaleX="0.92"
+        android:scaleY="0.92">
+
+        <path
+            android:pathData="M176,216 V176 a80,80 0 0 1 160,0 v40"
+            android:strokeColor="#FF000000"
+            android:strokeWidth="34"
+            android:strokeLineCap="round" />
+
+        <!-- Locker body with the cross cut out of it, so the shape reads in one tone. -->
+        <path
+            android:fillType="evenOdd"
+            android:fillColor="#FF000000"
+            android:pathData="M168,216 H344 a32,32 0 0 1 32,32 v120 a32,32 0 0 1 -32,32 H168 a32,32 0 0 1 -32,-32 V248 a32,32 0 0 1 32,-32 z M241,262 h30 v31 h31 v30 h-31 v31 h-30 v-31 h-31 v-30 h31 z" />
+    </group>
+</vector>

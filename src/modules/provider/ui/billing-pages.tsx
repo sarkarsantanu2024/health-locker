@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Banknote, FilePlus2, Plus, Receipt, Wallet } from "lucide-react";
 import Link from "next/link";
 
 import { requireTenantPermission } from "@/lib/auth/session";
@@ -11,8 +11,12 @@ import { StatusBadge } from "@/modules/provider/ui/status";
 import { buttonVariants } from "@/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card";
 import { EmptyState, PageHeader } from "@/ui/page-header";
-import { Stat } from "@/ui/stat";
+import { Stat, StatHero } from "@/ui/stat";
 import { Table, TableWrap, Tbody, Td, Th, Thead, Tr } from "@/ui/table";
+import { toneFor } from "@/ui/tone";
+
+/** Money is amber everywhere in the product; this file never picks a hue by hand. */
+const BILLING = toneFor("billing");
 
 export async function ProviderBillingPage({ base }: { base: string }) {
   const { orgId } = await requireTenantPermission("invoice:read");
@@ -23,6 +27,8 @@ export async function ProviderBillingPage({ base }: { base: string }) {
     <>
       <PageHeader
         title="Billing"
+        icon={Banknote}
+        tone={BILLING}
         description="Invoices, and collection by UPI, QR or bank transfer."
         action={
           <Link href={`${base}/billing/new`} className={buttonVariants({ size: "sm" })}>
@@ -33,24 +39,37 @@ export async function ProviderBillingPage({ base }: { base: string }) {
       />
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
+        {/* The screen's one hero: what has not been collected is the number that
+            decides whether anybody needs to do anything today. */}
+        <StatHero
+          label="Outstanding"
+          value={money(summary.outstandingMinor)}
+          hint={`${summary.outstandingCount} unpaid`}
+          icon={Wallet}
+          tone={BILLING}
+        />
         <Stat
           label="Collected this month"
           value={money(summary.paidThisMonthMinor)}
           hint={`${summary.paidThisMonthCount} invoice(s)`}
+          icon={Banknote}
+          tone="emerald"
         />
         <Stat
-          label="Outstanding"
-          value={money(summary.outstandingMinor)}
-          hint={`${summary.outstandingCount} unpaid`}
-          tone={summary.outstandingMinor > 0 ? "warning" : "neutral"}
+          label="Drafts"
+          value={summary.draftCount}
+          hint="Not yet issued"
+          icon={FilePlus2}
+          tone={toneFor("document")}
         />
-        <Stat label="Drafts" value={summary.draftCount} hint="Not yet issued" />
       </div>
 
       {invoices.length === 0 ? (
         <EmptyState
           title="No invoices yet"
           description="Create one from a visit, or start a standalone invoice."
+          art="wallet"
+          tone={BILLING}
           action={
             <Link href={`${base}/billing/new`} className={buttonVariants({ size: "sm" })}>
               New invoice
@@ -131,6 +150,8 @@ export async function NewInvoicePage({
     <>
       <PageHeader
         title="New invoice"
+        icon={FilePlus2}
+        tone={BILLING}
         description="Saved as a draft. Issuing it is what makes it payable and notifies the patient."
       />
 
@@ -168,6 +189,8 @@ export async function InvoiceDetailPage({ base, invoiceId }: { base: string; inv
     <>
       <PageHeader
         title={invoice.number}
+        icon={Receipt}
+        tone={BILLING}
         description={`${invoice.patient.fullName} · ${money(invoice.totalMinor)}`}
         action={<StatusBadge value={invoice.status} />}
       />
@@ -241,7 +264,7 @@ export async function InvoiceDetailPage({ base, invoiceId }: { base: string; inv
           </Card>
 
           {live ? (
-            <Card>
+            <Card hue={BILLING}>
               <CardHeader>
                 <CardTitle>Collection</CardTitle>
               </CardHeader>

@@ -4,11 +4,14 @@ import type { Metadata } from "next";
 import { auditRead } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { getPatientContext } from "@/modules/patient/context";
+import { KIND_SINGULAR } from "@/modules/patient/ui/record-kind";
 import { StatusBadge } from "@/modules/provider/ui/status";
 import { Alert } from "@/ui/alert";
 import { Card, CardContent } from "@/ui/card";
 import { EmptyState, PageHeader } from "@/ui/page-header";
+import { TONE_STYLES, toneFor } from "@/ui/tone";
 
 export const metadata: Metadata = { title: "Reports" };
 export const dynamic = "force-dynamic";
@@ -51,10 +54,16 @@ export default async function ReportsPage() {
     metadata: { patientId: context.patientId, count: reports.length },
   });
 
+  // A report is violet on the timeline, so it is violet here too.
+  const tone = toneFor("report");
+  const style = TONE_STYLES[tone];
+
   return (
     <>
       <PageHeader
         title="Reports"
+        icon={FlaskConical}
+        tone={tone}
         description={
           context.isActingForOther
             ? `${context.patientName}'s lab and scan results`
@@ -64,6 +73,8 @@ export default async function ReportsPage() {
 
       {reports.length === 0 ? (
         <EmptyState
+          art="report"
+          tone={tone}
           title="No reports yet"
           description="Results appear here as soon as the diagnostic centre publishes them."
         />
@@ -75,19 +86,27 @@ export default async function ReportsPage() {
             );
 
             return (
-              <Card key={report.id} tone="consumer">
+              <Card key={report.id} tone="consumer" hue={tone}>
                 <CardContent className="space-y-3 p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h2 className="flex items-center gap-2 font-medium">
-                        <FlaskConical aria-hidden className="size-4 text-primary" />
-                        {report.title}
-                      </h2>
-                      <p className="text-sm text-muted-foreground">
-                        {[report.org?.name, formatDate(report.reportedAt)]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
+                    <div className="flex min-w-0 items-start gap-3.5">
+                      <span
+                        className={cn(
+                          "flex size-10 shrink-0 items-center justify-center rounded-2xl",
+                          style.chipSolid,
+                        )}
+                      >
+                        <FlaskConical aria-hidden className="size-5" />
+                        <span className="sr-only">{KIND_SINGULAR.REPORT}</span>
+                      </span>
+                      <div className="min-w-0">
+                        <h2 className="font-medium">{report.title}</h2>
+                        <p className="text-sm text-muted-foreground">
+                          {[report.org?.name, formatDate(report.reportedAt)]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      </div>
                     </div>
                     {abnormal.length > 0 ? (
                       <StatusBadge value="HIGH" />

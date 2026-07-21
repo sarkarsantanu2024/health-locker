@@ -1,5 +1,6 @@
 import { humanizeEnum } from "@/lib/format";
 import { Badge } from "@/ui/badge";
+import type { StatTone } from "@/ui/stat";
 
 /**
  * One place that decides what colour a status is.
@@ -7,8 +8,13 @@ import { Badge } from "@/ui/badge";
  * Scattering these ternaries across screens is how "cancelled" ends up green on
  * one page and red on another. Anything unmapped falls back to neutral rather
  * than throwing — a new enum value should look plain, not break the page.
+ *
+ * The names below are the semantic ones; `Badge` resolves them onto the six
+ * hues in src/ui/tone.ts (success → emerald, warning → amber, danger → rose,
+ * info → sky, primary → teal), so a status pill is the same colour as the stat
+ * tile and the nav icon for the same kind of thing.
  */
-const TONES: Record<string, "neutral" | "primary" | "success" | "warning" | "danger" | "info"> = {
+const TONES: Record<string, StatTone> = {
   // appointments
   REQUESTED: "info",
   SCHEDULED: "primary",

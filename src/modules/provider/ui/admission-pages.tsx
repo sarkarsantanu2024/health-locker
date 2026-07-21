@@ -1,3 +1,4 @@
+import { BedDouble, Building2 } from "lucide-react";
 import Link from "next/link";
 
 import { requireTenantPermission } from "@/lib/auth/session";
@@ -20,6 +21,10 @@ import { buttonVariants } from "@/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card";
 import { EmptyState, PageHeader } from "@/ui/page-header";
 import { Table, TableWrap, Tbody, Td, Th, Thead, Tr } from "@/ui/table";
+import { toneFor } from "@/ui/tone";
+
+const ADMISSION = toneFor("admission");
+const DEPARTMENT = toneFor("department");
 
 export async function DepartmentsPage() {
   const { orgId } = await requireTenantPermission("org:read");
@@ -29,6 +34,8 @@ export async function DepartmentsPage() {
     <>
       <PageHeader
         title="Departments"
+        icon={Building2}
+        tone={DEPARTMENT}
         description="Used to route admissions and to split a bill by department."
       />
 
@@ -42,6 +49,8 @@ export async function DepartmentsPage() {
         <EmptyState
           title="No departments yet"
           description="Add the wards and specialities this hospital runs."
+          art="people"
+          tone={DEPARTMENT}
         />
       ) : (
         <TableWrap>
@@ -96,12 +105,19 @@ export async function AdmissionsPage({ patientId }: { patientId?: string }) {
     <>
       <PageHeader
         title="Admissions"
+        icon={BedDouble}
+        tone={ADMISSION}
         description={`${admitted.length} patient(s) currently admitted`}
       />
 
       {admissions.length === 0 ? (
         <div className="mb-6">
-          <EmptyState title="Nobody has been admitted yet" />
+          <EmptyState
+            title="Nobody has been admitted yet"
+            description="Admit a patient below and the ward list starts here."
+            art="records"
+            tone={ADMISSION}
+          />
         </div>
       ) : (
         <TableWrap className="mb-6">
@@ -172,6 +188,8 @@ export async function AdmissionDetailPage({ admissionId }: { admissionId: string
     <>
       <PageHeader
         title={admission.patient.fullName}
+        icon={BedDouble}
+        tone={ADMISSION}
         description={[
           age !== null ? `${age} yrs` : null,
           humanizeEnum(admission.patient.gender),
@@ -185,7 +203,7 @@ export async function AdmissionDetailPage({ admissionId }: { admissionId: string
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          <Card>
+          <Card hue={ADMISSION}>
             <CardHeader>
               <CardTitle>Stay</CardTitle>
             </CardHeader>
@@ -273,7 +291,7 @@ export async function AdmissionDetailPage({ admissionId }: { admissionId: string
             </Card>
           ) : null}
 
-          <Card>
+          <Card hue={toneFor("billing")}>
             <CardHeader>
               <CardTitle>Billing</CardTitle>
             </CardHeader>

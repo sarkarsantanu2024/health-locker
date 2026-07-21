@@ -1,48 +1,45 @@
-import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils";
 
-/**
- * Status pills. Every tone pairs a subtle background with its own foreground so
- * contrast holds in both themes — and each carries a dot, so status is never
- * conveyed by colour alone (WCAG 1.4.1).
- */
-const badgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
-  {
-    variants: {
-      tone: {
-        neutral: "bg-muted text-muted-foreground",
-        primary: "bg-primary-subtle text-primary",
-        success: "bg-success-subtle text-success",
-        warning: "bg-warning-subtle text-warning",
-        danger: "bg-danger-subtle text-danger",
-        info: "bg-info-subtle text-info",
-      },
-    },
-    defaultVariants: { tone: "neutral" },
-  },
-);
+import { resolveTone, type StatTone } from "./stat";
+import { TONE_STYLES } from "./tone";
 
-const dotTone: Record<string, string> = {
-  neutral: "bg-muted-foreground",
-  primary: "bg-primary",
-  success: "bg-success",
-  warning: "bg-warning",
-  danger: "bg-danger",
-  info: "bg-info",
+/**
+ * Status pills.
+ *
+ * The tone names are the semantic ones the app already speaks — `success`,
+ * `warning`, `danger`, `info` — but the colours behind them are the six hues in
+ * src/ui/tone.ts rather than a second, nearly-identical palette. `resolveTone`
+ * is the single mapping (success → emerald, warning → amber, danger → rose,
+ * info → sky, primary → teal), so a "Paid" badge is the same green as an
+ * emerald stat tile, and a hue name can be passed directly where a badge is
+ * labelling a category rather than a state.
+ *
+ * Every tone pairs a subtle background with its own foreground, which is a
+ * documented AA pair in both themes — and each carries a dot, so status is
+ * never conveyed by colour alone (WCAG 1.4.1).
+ */
+export type BadgeProps = Omit<ComponentProps<"span">, "color"> & {
+  tone?: StatTone;
+  dot?: boolean;
 };
 
-export type BadgeProps = ComponentProps<"span"> &
-  VariantProps<typeof badgeVariants> & { dot?: boolean };
+export function Badge({ className, tone = "neutral", dot = true, children, ...props }: BadgeProps) {
+  const style = TONE_STYLES[resolveTone(tone)];
 
-export function Badge({ className, tone, dot = true, children, ...props }: BadgeProps) {
   return (
-    <span className={cn(badgeVariants({ tone }), className)} {...props}>
-      {dot ? (
-        <span aria-hidden className={cn("size-1.5 rounded-full", dotTone[tone ?? "neutral"])} />
-      ) : null}
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        style.chipSolid,
+        className,
+      )}
+      {...props}
+    >
+      {/* `bg-current` takes the tone's own foreground, so the dot can never
+          drift out of step with the text beside it. */}
+      {dot ? <span aria-hidden className="size-1.5 rounded-full bg-current" /> : null}
       {children}
     </span>
   );

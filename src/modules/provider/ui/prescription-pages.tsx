@@ -1,3 +1,4 @@
+import { ScrollText } from "lucide-react";
 import Link from "next/link";
 
 import { requireTenantPermission } from "@/lib/auth/session";
@@ -6,6 +7,9 @@ import { getPrescriptionForPrint, listPrescriptions } from "@/modules/provider/c
 import { buttonVariants } from "@/ui/button";
 import { EmptyState, PageHeader } from "@/ui/page-header";
 import { Table, TableWrap, Tbody, Td, Th, Thead, Tr } from "@/ui/table";
+import { toneFor } from "@/ui/tone";
+
+const PRESCRIPTION = toneFor("prescription");
 
 export async function ProviderPrescriptionsPage({ base }: { base: string }) {
   const { orgId } = await requireTenantPermission("prescription:read");
@@ -15,6 +19,8 @@ export async function ProviderPrescriptionsPage({ base }: { base: string }) {
     <>
       <PageHeader
         title="Prescriptions"
+        icon={ScrollText}
+        tone={PRESCRIPTION}
         description="Everything issued from this organisation. Write a new one from inside a visit."
       />
 
@@ -22,6 +28,8 @@ export async function ProviderPrescriptionsPage({ base }: { base: string }) {
         <EmptyState
           title="No prescriptions yet"
           description="Record a visit, then write the prescription against it."
+          art="medicine"
+          tone={PRESCRIPTION}
           action={
             <Link href={`${base}/encounters/new`} className={buttonVariants({ size: "sm" })}>
               Record a visit
@@ -101,6 +109,8 @@ export async function PrescriptionPrintPage({
       <div className="print:hidden">
         <PageHeader
           title="Prescription"
+          icon={ScrollText}
+          tone={PRESCRIPTION}
           description="Use your browser's print dialog. The page chrome is removed automatically."
           action={
             <Link

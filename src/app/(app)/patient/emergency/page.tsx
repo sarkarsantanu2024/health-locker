@@ -6,6 +6,7 @@ import { getPatientContext } from "@/modules/patient/context";
 import { emergencyQrSvg, emergencyUrl, getActiveCard } from "@/modules/patient/emergency.service";
 import { Alert } from "@/ui/alert";
 import { PageHeader } from "@/ui/page-header";
+import { toneFor } from "@/ui/tone";
 
 export const metadata: Metadata = { title: "Emergency card" };
 export const dynamic = "force-dynamic";
@@ -22,6 +23,8 @@ export default async function EmergencyPage() {
     <>
       <PageHeader
         title="Emergency card"
+        icon={ShieldAlert}
+        tone={toneFor("alert")}
         description={
           context.isActingForOther
             ? `A card a first responder can scan for ${context.patientName}.`

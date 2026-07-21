@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { buttonVariants } from "@/ui/button";
+import { LogoMark } from "@/ui/logo";
 
 /**
  * Public site header and footer.
@@ -24,14 +25,11 @@ const LINKS = [
 
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <Link href="/" className={`flex items-center gap-2.5 ${className}`}>
-      <span
-        aria-hidden
-        className="flex size-9 items-center justify-center rounded-xl bg-brand-gradient text-sm font-bold text-white shadow-sm"
-      >
-        H
+    <Link href="/" className={`press flex items-center gap-2.5 rounded-xl ${className}`}>
+      <LogoMark className="size-9 shrink-0 rounded-xl shadow-sm" />
+      <span className="text-base font-semibold tracking-tight">
+        Health<span className="text-primary">Locker</span>
       </span>
-      <span className="text-base font-semibold tracking-tight">HealthLocker</span>
     </Link>
   );
 }

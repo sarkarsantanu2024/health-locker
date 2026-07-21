@@ -1,3 +1,4 @@
+import { ClipboardList, FlaskConical, ListChecks, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { hasPermission, requireTenantPermission } from "@/lib/auth/session";
@@ -23,6 +24,11 @@ import { buttonVariants } from "@/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card";
 import { EmptyState, PageHeader } from "@/ui/page-header";
 import { Table, TableWrap, Tbody, Td, Th, Thead, Tr } from "@/ui/table";
+import { toneFor } from "@/ui/tone";
+
+const REPORT = toneFor("report");
+const BOOKING = toneFor("appointment");
+const CATALOGUE = toneFor("document");
 
 export async function CataloguePage() {
   const { orgId } = await requireTenantPermission("test-catalog:manage");
@@ -32,6 +38,8 @@ export async function CataloguePage() {
     <>
       <PageHeader
         title="Test catalogue"
+        icon={ListChecks}
+        tone={CATALOGUE}
         description="What this centre offers, with price, sample type and turnaround."
       />
 
@@ -42,7 +50,12 @@ export async function CataloguePage() {
       </Card>
 
       {catalog.length === 0 ? (
-        <EmptyState title="No tests yet" description="Add the first test to start taking bookings." />
+        <EmptyState
+          title="No tests yet"
+          description="Add the first test to start taking bookings."
+          art="records"
+          tone={CATALOGUE}
+        />
       ) : (
         <TableWrap>
           <Table>
@@ -99,11 +112,21 @@ export async function BookingsPage({ patientId }: { patientId?: string }) {
 
   return (
     <>
-      <PageHeader title="Bookings" description="Sample collection and processing status." />
+      <PageHeader
+        title="Bookings"
+        icon={ClipboardList}
+        tone={BOOKING}
+        description="Sample collection and processing status."
+      />
 
       {bookings.length === 0 ? (
         <div className="mb-6">
-          <EmptyState title="No bookings yet" />
+          <EmptyState
+            title="No bookings yet"
+            description="Book a test below and it appears here until the report is out."
+            art="calendar"
+            tone={BOOKING}
+          />
         </div>
       ) : (
         <TableWrap className="mb-6">
@@ -192,6 +215,8 @@ export async function ReportsPage() {
     <>
       <PageHeader
         title="Reports"
+        icon={FlaskConical}
+        tone={REPORT}
         description={
           awaiting > 0
             ? `${awaiting} report(s) waiting to be verified before the patient can see them.`
@@ -208,6 +233,8 @@ export async function ReportsPage() {
         <EmptyState
           title="No reports yet"
           description="Enter results against a booking, or start a standalone report."
+          art="report"
+          tone={REPORT}
         />
       ) : (
         <TableWrap>
@@ -267,6 +294,8 @@ export async function NewReportPage({
     <>
       <PageHeader
         title="Enter results"
+        icon={FlaskConical}
+        tone={REPORT}
         description="Saved for verification. Nothing reaches the patient until it is signed off."
       />
 
@@ -297,6 +326,8 @@ export async function ReportDetailPage({ reportId }: { reportId: string }) {
       <div className="print:hidden">
         <PageHeader
           title={report.title}
+          icon={FlaskConical}
+          tone={REPORT}
           description={`${report.patient.fullName} · ${formatDate(report.reportedAt)}`}
           action={<StatusBadge value={report.status} />}
         />
@@ -363,9 +394,12 @@ export async function ReportDetailPage({ reportId }: { reportId: string }) {
 
         <div className="space-y-4 print:hidden">
           {report.status !== "PUBLISHED" ? (
-            <Card>
+            <Card hue="amber">
               <CardHeader>
-                <CardTitle>Verification</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <ShieldCheck aria-hidden className="size-4 text-amber" />
+                  Verification
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {canVerify ? (

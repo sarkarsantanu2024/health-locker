@@ -1,4 +1,4 @@
-import { Printer } from "lucide-react";
+import { Printer, Stethoscope } from "lucide-react";
 import Link from "next/link";
 
 import { hasPermission, requireTenantPermission } from "@/lib/auth/session";
@@ -10,6 +10,7 @@ import { StatusBadge } from "@/modules/provider/ui/status";
 import { buttonVariants } from "@/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card";
 import { PageHeader } from "@/ui/page-header";
+import { toneFor } from "@/ui/tone";
 
 export async function NewEncounterPage({
   base,
@@ -31,6 +32,8 @@ export async function NewEncounterPage({
     <>
       <PageHeader
         title="Record a visit"
+        icon={Stethoscope}
+        tone={toneFor("prescription")}
         description="Saving this closes the appointment and adds the visit to the patient's timeline."
         action={
           <Link
@@ -81,6 +84,8 @@ export async function EncounterDetailPage({
     <>
       <PageHeader
         title={encounter.diagnosis ?? encounter.chiefComplaint ?? "Consultation"}
+        icon={Stethoscope}
+        tone={toneFor("prescription")}
         description={`${formatDateTime(encounter.occurredAt)} · ${humanizeEnum(encounter.type)}`}
         action={
           <Link
@@ -94,7 +99,7 @@ export async function EncounterDetailPage({
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          <Card>
+          <Card hue={toneFor("prescription")}>
             <CardHeader>
               <CardTitle>Consultation notes</CardTitle>
             </CardHeader>
@@ -174,7 +179,7 @@ export async function EncounterDetailPage({
         </div>
 
         <div className="space-y-4">
-          <Card>
+          <Card hue={toneFor("patient")}>
             <CardHeader>
               <CardTitle>Patient</CardTitle>
             </CardHeader>

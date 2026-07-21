@@ -8,6 +8,7 @@ import { Badge } from "@/ui/badge";
 import { Card, CardContent } from "@/ui/card";
 import { Select } from "@/ui/field";
 import { EmptyState, PageHeader } from "@/ui/page-header";
+import { ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = { title: "Audit" };
 export const dynamic = "force-dynamic";
@@ -44,6 +45,8 @@ export default async function AuditPage({
     <>
       <PageHeader
         title="Audit trail"
+        icon={ShieldCheck}
+        tone="emerald"
         description={`${result.total} recorded events. Append-only — entries are never edited or deleted.`}
       />
 
@@ -72,7 +75,12 @@ export default async function AuditPage({
       </form>
 
       {result.entries.length === 0 ? (
-        <EmptyState title="No matching events" />
+        <EmptyState
+          title="No matching events"
+          description="Nothing has been recorded for that action yet."
+          art="search"
+          tone="emerald"
+        />
       ) : (
         <Card>
           <CardContent className="p-0">

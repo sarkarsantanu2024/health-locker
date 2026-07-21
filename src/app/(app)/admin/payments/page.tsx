@@ -5,7 +5,8 @@ import { prisma } from "@/lib/db";
 import { PaymentQueue } from "@/app/(app)/admin/payments/payment-queue";
 import { listPendingSubmissions } from "@/modules/billing/payment.service";
 import { PageHeader } from "@/ui/page-header";
-import { Stat } from "@/ui/stat";
+import { Stat, StatHero } from "@/ui/stat";
+import { toneFor } from "@/ui/tone";
 import { Banknote, CheckCircle2, Clock } from "lucide-react";
 
 export const metadata: Metadata = { title: "Payments" };
@@ -35,17 +36,26 @@ export default async function AdminPaymentsPage() {
     <>
       <PageHeader
         title="Payments"
+        icon={Banknote}
+        tone={toneFor("billing")}
         description="Approve or reject submitted UPI, QR and bank payments."
       />
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <Stat
+        {/* The queue is the job on this screen, so it is the one thing on the gradient. */}
+        <StatHero
           label="Awaiting review"
           value={submissions.length}
+          hint={submissions.length > 0 ? "Claims to check" : "Queue is clear"}
           icon={Clock}
-          tone={submissions.length > 0 ? "warning" : "neutral"}
+          tone={toneFor("billing")}
         />
-        <Stat label="Approved this month" value={approvedThisMonth} icon={CheckCircle2} />
+        <Stat
+          label="Approved this month"
+          value={approvedThisMonth}
+          icon={CheckCircle2}
+          tone="emerald"
+        />
         <Stat
           label="Collected this month"
           value={new Intl.NumberFormat("en-IN", {
@@ -55,6 +65,7 @@ export default async function AdminPaymentsPage() {
           }).format((revenue._sum.amountMinor ?? 0) / 100)}
           icon={Banknote}
           hint="Approved payments only"
+          tone={toneFor("patient")}
         />
       </div>
 
