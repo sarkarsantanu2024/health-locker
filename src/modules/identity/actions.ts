@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -41,6 +42,8 @@ import {
 export interface ActionState {
   ok: boolean;
   error?: string;
+  /** Human-readable confirmation for a successful action. */
+  message?: string;
   fieldErrors?: Record<string, string[]>;
   /** Set when the server needs the form to reveal the 2FA input. */
   needsTotp?: boolean;
@@ -300,7 +303,12 @@ export async function setUserActiveAction(
   try {
     const actor = await requirePermission("user:suspend");
     await setUserActive(parsed.data.userId, parsed.data.active, actor.id, parsed.data.reason || undefined);
-    return { ok: true };
+
+    revalidatePath("/admin/users");
+    return {
+      ok: true,
+      message: parsed.data.active ? "Account activated." : "Account suspended and signed out.",
+    };
   } catch (error) {
     return toActionState(error);
   }
