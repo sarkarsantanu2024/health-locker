@@ -1,27 +1,61 @@
-import { Banknote, Building2, ClipboardList, Users } from "lucide-react";
+import { Banknote, Building2, ClipboardList, CreditCard, ShieldCheck, Users } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { revenueSummary } from "@/modules/admin/admin.service";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/card";
-import { ComingInPhase, PageHeader } from "@/ui/page-header";
+import { PageHeader } from "@/ui/page-header";
 import { Stat } from "@/ui/stat";
 
 export const metadata: Metadata = { title: "Admin" };
 export const dynamic = "force-dynamic";
 
+function money(minor: number): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(minor / 100);
+}
+
 export default async function AdminHomePage() {
   const user = await requireUser();
 
-  const [users, pendingUsers, orgs, pendingRequests, pendingPayments] = await Promise.all([
+  const [revenue, users, pendingUsers, orgs, pendingRequests] = await Promise.all([
+    revenueSummary(),
     prisma.user.count({ where: { deletedAt: null, status: "ACTIVE" } }),
     prisma.user.count({ where: { deletedAt: null, status: "PENDING_ACTIVATION" } }),
-    prisma.organization.count({ where: { deletedAt: null } }),
+    prisma.organization.count({ where: { deletedAt: null, type: { not: "PLATFORM" } } }),
     prisma.accessRequest.count({
       where: { deletedAt: null, status: { in: ["PENDING", "AWAITING_PAYMENT"] } },
     }),
-    prisma.paymentSubmission.count({ where: { status: "SUBMITTED" } }),
   ]);
+
+  const queues = [
+    {
+      href: "/admin/payments",
+      label: "Payments to verify",
+      value: revenue.pendingVerification,
+      icon: Banknote,
+      description: "Check the screenshot and UTR, then approve.",
+    },
+    {
+      href: "/admin/onboarding",
+      label: "Onboarding waiting",
+      value: pendingRequests,
+      icon: ClipboardList,
+      description: "Sign-ups and enquiries needing action.",
+    },
+    {
+      href: "/admin/users",
+      label: "Awaiting activation",
+      value: pendingUsers,
+      icon: Users,
+      description: "Signed up, payment not yet confirmed.",
+    },
+  ];
 
   return (
     <>
@@ -31,48 +65,57 @@ export default async function AdminHomePage() {
       />
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Active users" value={users} icon={Users} />
         <Stat
-          label="Awaiting activation"
-          value={pendingUsers}
-          icon={ClipboardList}
-          tone={pendingUsers > 0 ? "warning" : "neutral"}
-          hint={pendingUsers > 0 ? "Signed up, payment not yet verified" : "Nothing waiting"}
+          label="Collected this month"
+          value={money(revenue.monthMinor)}
+          icon={CreditCard}
+          hint={`${revenue.monthCount} approved payment${revenue.monthCount === 1 ? "" : "s"}`}
+          tone="primary"
         />
-        <Stat label="Organizations" value={orgs} icon={Building2} />
+        <Stat label="Collected this year" value={money(revenue.yearMinor)} icon={Banknote} />
         <Stat
-          label="Payments to verify"
-          value={pendingPayments}
-          icon={Banknote}
-          tone={pendingPayments > 0 ? "warning" : "neutral"}
+          label="Active subscriptions"
+          value={revenue.activeSubscriptions}
+          icon={ShieldCheck}
         />
+        <Stat label="Tenants" value={orgs} icon={Building2} hint={`${users} active users`} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Onboarding &amp; provisioning</CardTitle>
-            <CardDescription>
-              {pendingRequests > 0
-                ? `${pendingRequests} request${pendingRequests === 1 ? "" : "s"} waiting on payment verification.`
-                : "Verify a payment, then activate the account."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ComingInPhase phase={11} what="Provisioning console" />
-          </CardContent>
-        </Card>
+      <h2 className="mb-3 text-sm font-medium text-muted-foreground">Needs your attention</h2>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment verification</CardTitle>
-            <CardDescription>UPI, QR and bank submissions awaiting approval.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ComingInPhase phase={6} what="Verification queue" />
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 md:grid-cols-3">
+        {queues.map((queue) => {
+          const Icon = queue.icon;
+          const waiting = queue.value > 0;
+
+          return (
+            <Link key={queue.href} href={queue.href} className="block">
+              <Card interactive className="h-full">
+                <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+                  <div>
+                    <CardTitle className="text-sm">{queue.label}</CardTitle>
+                    <CardDescription className="mt-1">{queue.description}</CardDescription>
+                  </div>
+                  <Icon
+                    aria-hidden
+                    className={`size-4 shrink-0 ${waiting ? "text-warning" : "text-muted-foreground"}`}
+                  />
+                </CardHeader>
+                <CardContent>
+                  <p className={`text-3xl font-semibold ${waiting ? "text-warning" : ""}`}>
+                    {queue.value}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
+
+      <p className="mt-6 text-xs text-muted-foreground">
+        Revenue counts approved payments only — a submitted claim is not money until you have
+        matched it against your bank statement.
+      </p>
     </>
   );
 }
