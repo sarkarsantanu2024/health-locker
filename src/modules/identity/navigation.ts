@@ -140,7 +140,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users, permission: "user:read", phase: 11, summary: "Search users, reset passwords, suspend and reactivate." },
   { href: "/admin/onboarding", label: "Onboarding", icon: ClipboardList, permission: "access-request:read", phase: 11, summary: "Sign-ups awaiting payment verification, and the provisioning console." },
-  { href: "/admin/payments", label: "Payments", icon: Banknote, permission: "payment:verify", phase: 6, summary: "Approve or reject submitted UPI, QR and bank payments." },
+  { href: "/admin/payments", label: "Payments", icon: Banknote, permission: "payment:verify" },
   { href: "/admin/organizations", label: "Tenants", icon: Building2, permission: "org:manage", phase: 11, summary: "Clinics, hospitals, diagnostic centres and pharmacies." },
   { href: "/admin/audit", label: "Audit", icon: ShieldCheck, permission: "audit:read", phase: 11, summary: "Every action taken on medical and financial data." },
   { href: "/account", label: "Account", icon: UserCog },
