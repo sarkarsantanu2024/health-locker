@@ -78,6 +78,8 @@ export default async function AdminPaymentsPage() {
             "Unknown",
           payerPhone:
             submission.submitterPhone ?? submission.paymentRequest.accessRequest?.phone ?? null,
+          proofDocumentId: submission.proofDocumentId,
+          proofIsPdf: submission.proofDocument?.mimeType === "application/pdf",
         }))}
       />
     </>

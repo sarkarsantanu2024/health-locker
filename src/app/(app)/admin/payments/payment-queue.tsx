@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Check, X } from "lucide-react";
+import { AlertTriangle, Check, FileText, X } from "lucide-react";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -31,6 +31,8 @@ export interface QueuedSubmission {
   description: string | null;
   payer: string;
   payerPhone: string | null;
+  proofDocumentId: string | null;
+  proofIsPdf: boolean;
 }
 
 function money(minor: number): string {
@@ -127,10 +129,51 @@ function SubmissionRow({ submission }: { submission: QueuedSubmission }) {
           </div>
         </dl>
 
+        {submission.proofDocumentId ? (
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Payment screenshot
+            </p>
+            {submission.proofIsPdf ? (
+              <a
+                href={`/api/v1/documents/${submission.proofDocumentId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted"
+              >
+                <FileText aria-hidden className="size-4" />
+                Open PDF receipt
+              </a>
+            ) : (
+              // Opens full size in a new tab — the thumbnail is for triage, the
+              // full image is what actually gets checked against the statement.
+              <a
+                href={`/api/v1/documents/${submission.proofDocumentId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block overflow-hidden rounded-lg border border-border hover:border-primary"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- authorised
+                    route, not a static asset; next/image would proxy and cache it. */}
+                <img
+                  src={`/api/v1/documents/${submission.proofDocumentId}`}
+                  alt={`Payment screenshot for ${submission.refCode}`}
+                  className="max-h-64 w-auto"
+                />
+              </a>
+            )}
+          </div>
+        ) : (
+          <Alert tone="danger">
+            No screenshot attached. This submission predates the proof requirement — verify it
+            against your bank statement with extra care.
+          </Alert>
+        )}
+
         <Alert tone="warning">
           <AlertTriangle aria-hidden className="hidden" />
-          Check this UTR against your bank statement before approving. Approving activates
-          access immediately.
+          Check the screenshot AND the UTR against your bank statement before approving. A
+          screenshot alone can be edited. Approving activates access immediately.
         </Alert>
 
         {rejecting ? (
