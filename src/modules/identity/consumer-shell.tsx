@@ -24,6 +24,8 @@ interface ConsumerShellProps {
   permissions: string[];
   displayName: string;
   signOut: ReactNode;
+  /** Server-rendered so the unread count is fresh without a client poll. */
+  bell?: ReactNode;
   children: ReactNode;
 }
 
@@ -36,6 +38,7 @@ export function ConsumerShell({
   permissions,
   displayName,
   signOut,
+  bell,
   children,
 }: ConsumerShellProps) {
   const pathname = usePathname();
@@ -61,8 +64,9 @@ export function ConsumerShell({
             <span className="text-base font-semibold tracking-tight">HealthLocker</span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3">
             <span className="hidden text-sm text-muted-foreground sm:inline">{displayName}</span>
+            {bell}
             {signOut}
           </div>
         </div>

@@ -4,24 +4,7 @@ Running log of the phased build. A fresh session should read this first, then
 `AGENTS.md` for the architecture rules.
 
 | Phase | Title | Status |
-| --- | --- | --- |
-| 0 | Scaffold (Vercel-ready) | ✅ Done — acceptance criteria met |
-| 1 | Data model (Neon + Prisma) | ✅ Done — acceptance criteria met |
-| 2 | Auth + RBAC + tenancy (**self-registration**, see below) | ✅ Done — acceptance criteria met |
-| 3 | Patient core (records, timeline, family) | ✅ Done — acceptance criteria met |
-| 4 | Uploads + AI pipeline (serverless) | ⏭️ Next — **blocked**: needs R2 + Upstash + AI key |
-| 5 | Notifications (Web Push + in-app; no email) | ⬜ |
-| 6 | Manual payments (UPI / QR / bank) + subscriptions | ⬜ |
-| 7 | Clinic portal | ⬜ |
-| 8 | Hospital portal | ⬜ |
-| 9 | Diagnostic centre portal | ⬜ |
-| 10 | Pharmacy portal | ⬜ |
-| 11 | Admin & Super Admin | ⬜ |
-| 12 | PWA / mobile | ⬜ |
-| 13 | Security & compliance | ⬜ |
-| 14 | DevOps / CI-CD (Vercel-native) | ⬜ |
-| 15 | Testing & QA | ⬜ |
-| 16 | Production launch checklist | ⬜ |
+| ---
 
 ---
 
@@ -369,3 +352,251 @@ queues key off.
    without `AI_PROCESSING`) belongs with Phase 4, which is the first consumer.
 5. **The signup consent checkbox still does not write a `ConsentRecord`** — the
    table now exists, so this is a small follow-up in Phase 4.
+
+---
+
+## Phase 4 — Uploads + AI pipeline — SKIPPED
+
+Skipped at the product owner's request; not started, not stubbed. It is not
+blocking, because every screen it would have filled is fed from the other end
+instead: `/patient/medicines` comes from prescriptions a clinician writes, and
+`/patient/reports` from results a diagnostic centre publishes. The `AiService`
+interface, the deterministic mock adapter and the `AI_PROCESSING` consent type
+all exist and are unused.
+
+---
+
+## Phase 5 — Notifications (Web Push + in-app)
+
+**Decisions taken**
+
+- **In-app is never suppressed.** A preference or a quiet-hours window stops a
+  *push* — the interrupt — but the in-app row is always written. In-app is a pull
+  channel, and silencing it would lose the notice entirely. "I was never told my
+  report was ready" is not an acceptable outcome for health data.
+- **Delivery failure never fails the caller.** Discharging a patient must not 500
+  because a browser push endpoint was unreachable. Every channel result is
+  written to `NotificationLog` and swallowed.
+- **Idempotency is the caller's key, not a timestamp.** `dedupeKey` is derived
+  from the row the notice is about (`dose:<id>`, `report:<id>`), so an
+  at-least-once cron never nags twice. Where a repeat *is* wanted — an unpaid
+  invoice — the key includes the date.
+- **Quiet hours wrap midnight.** "22:00 to 07:00" is the normal case and a naive
+  `start < now < end` never matches it, so pushes would have arrived at 3am.
+  Urgent types (drug interaction, account notice) ignore the window entirely.
+- **A 404/410 from a push endpoint deletes the subscription.** Keeping it would
+  guarantee a failed send on every future notice.
+- **WhatsApp stays manual.** `whatsappLink()` builds the `wa.me` URL and the
+  operator presses send; the `NotificationLog` row it writes has the same shape
+  an adapter would produce, which is what makes automating it later a drop-in.
+
+**Shipped**
+
+- `src/modules/notify/notify.service.ts` — `notify`, `notifyPatient`,
+  `notifyMany`, preferences, push subscriptions, quiet hours, WhatsApp helpers.
+- `src/modules/notify/catalog.ts` — wording per type, and which roles may see
+  which (a pharmacist is never offered a "vaccination due" toggle).
+- `src/modules/notify/reminders.service.ts` — medicine doses, appointments,
+  vaccinations, invoices and stock expiry, each independently re-runnable.
+- `src/lib/jobs.ts` — `authenticateJob` (QStash signature **or** `CRON_SECRET`
+  bearer, constant-time) and `enqueueJob`.
+- `src/app/api/jobs/reminders/route.ts` + a `0,30 * * * *` cron in `vercel.json`.
+- `src/app/api/v1/notifications/subscribe` and `.../whatsapp-copy`.
+- Screens: `/notifications`, `/notifications/settings`, and a header bell in both
+  shells.
+- `public/sw.js` — push and notificationclick handlers (shared with Phase 12).
+
+**Verified**
+
+- Quiet hours, dedupe and role-filtering have unit tests, including the case that
+  matters: 20:00 UTC is inside a 22:00–07:00 window in Kolkata and outside it in
+  UTC, so a server-local comparison would push at 1:30am.
+- The whole chain was run end to end against the live database:
+  `POST /api/jobs/reminders` with a valid `CRON_SECRET` returned
+  `{"ok":true,…,"stockExpiryAlerts":2}`, and the resulting rows show
+  `IN_APP / SENT` plus `WEB_PUSH / SKIPPED (not-configured)` — the designed
+  behaviour when VAPID keys are absent.
+- The same call with no credential, and with a wrong bearer, returns 401 in the
+  standard error shape.
+
+**Open items / deferred**
+
+1. **No VAPID keys yet**, so every push is `SKIPPED / not-configured`. In-app
+   works; generate keys with `pnpm dlx web-push generate-vapid-keys`.
+2. **No digest.** Ten doses due at 08:00 produce ten notices. A daily summary is
+   the obvious next step once anyone has that many.
+
+---
+
+## Phases 7–10 — The four provider portals
+
+Built on one shared foundation rather than four times over, because the tenancy
+rule, the patient register and the invoice are identical in all four.
+
+**Decisions taken**
+
+- **`requireTenantPermission()` supplies the `orgId`, always.** No form posts one.
+  Every query puts the tenant in the `WHERE` rather than loading a row and
+  checking it afterwards, so an id from a URL finds nothing instead of finding
+  someone else's patient — and the refusal is `NOT_FOUND`, never `FORBIDDEN`,
+  because confirming a record exists elsewhere is itself a disclosure.
+- **Patient search is per-tenant, never global.** Being able to type a phone
+  number and find any patient on the platform would turn every receptionist into
+  a directory of who is being treated where.
+- **Registering someone writes a `PROVIDER_SHARING` consent.** The provider can
+  now read that person's records; that is a consent event, and revoking the link
+  revokes the access without touching a medical row.
+- **Recording the visit closes the appointment.** Leaving it "checked in" is the
+  single most common source of a wrong day list.
+- **A prescription creates the patient's reminder schedules.** Frequency is
+  mapped conservatively — "1-0-1" and "BD" are understood, and anything
+  unrecognised becomes **one** morning dose the patient can edit. Over-reminding
+  teaches people to ignore reminders.
+- **Invoice totals are recomputed server-side from the line items**, clamped at
+  zero, and an invoice is **voided, never deleted** — a financial row that
+  vanishes is indistinguishable from one that never existed.
+- **An admission is never rewritten.** A transfer keeps the same admission and
+  changes the ward, with both sides in the audit row, because "where was this
+  patient on Tuesday" is unanswerable once the column is overwritten. Two open
+  admissions for one patient, or two patients in one bed, are refused.
+- **A diagnostic result is invisible until a human verifies it.** Everything a
+  technician enters lands in `AWAITING_VERIFICATION`; only `publishReport` —
+  which needs `report:verify`, held by the diagnostic *admin*, not the technician
+  who typed the numbers — publishes it and notifies the patient. The flag
+  (normal/high/low/critical) is chosen by that person rather than parsed from a
+  reference range like `<200` or `Negative`.
+- **Pharmacy stock lives on batches and moves exactly once, at PACKED.**
+  Decrementing at order time strands stock behind abandoned orders; decrementing
+  at delivery lets you promise the same tablets twice. Expired batches are
+  excluded from "in stock" entirely — they are on the shelf but not sellable, and
+  showing them as available is how expired medicine gets dispensed. A scheduled
+  drug without a prescription is refused outright, not flagged for later.
+
+**Shipped**
+
+- `src/modules/provider/` — `patients`, `clinical`, `invoice`, `admission`,
+  `diagnostic` and `pharmacy` services, one `actions.ts`, and a `ui/` folder of
+  screens shared across portals.
+- 34 route files across `/clinic`, `/hospital`, `/diagnostic` and `/pharmacy`,
+  each a thin wrapper around a shared screen.
+- Provider staff management at `/<portal>/users`, tenant-scoped.
+- `src/lib/format.ts` — money in paise, and every date formatted in
+  `Asia/Kolkata` rather than the server's UTC.
+
+**Verified**
+
+- `tests/provider.integration.test.ts` — 18 tests against the live database
+  covering tenancy refusals, the appointment→visit→prescription chain, invoice
+  arithmetic and voiding, admission and bed conflicts, the verification gate, the
+  single stock movement, and expired stock never counting as available.
+- All 34 new pages render for their role in `pnpm smoke`.
+
+---
+
+## Phase 11 — Admin & Super Admin (shipped earlier; hardened here)
+
+**A real cross-tenant hole was found and closed.** Provider org admins hold
+`user:create`, `user:reset-password` and `user:suspend` — a clinic must be able
+to run its own reception accounts — but the actions took the org id and user id
+straight from the form. A clinic admin could therefore mint a user inside another
+tenant, or reset a **Super Admin's** password.
+
+Fixed in `provisioning.service.ts` with an explicit `ActorScope`:
+`platformScope()` is unrestricted, `tenantScope()` is confined to the caller's
+own `orgId` from their session. A scoped caller's tenant overrides whatever the
+form posted, platform and consumer roles are out of reach entirely, and a target
+user outside the tenant reports `NOT_FOUND`. Covered by a named regression test.
+
+---
+
+## Phase 12 — PWA / mobile
+
+- `ServiceWorkerRegistrar` in the root layout registers `/sw.js` after `load`, so
+  it never competes with first paint on the slow connection where the offline
+  shell matters most.
+- **Nothing authenticated is cached.** A stale prescription is worse than no
+  prescription, and a cached authenticated page would be readable by the next
+  person to use the device. Only the static shell and `/offline` are cached;
+  navigations are network-first with `/offline` as the fallback, and `/api/*` is
+  never touched.
+- `InstallPrompt` splits by platform: Chrome's `beforeinstallprompt` is deferred
+  and offered as a button; iOS Safari fires nothing, so it gets the Share-menu
+  instruction instead — which is also what enables push there. Dismissal is
+  remembered, because a banner that returns on every load is an advertisement.
+
+**Deferred:** the Apple touch icon is an SVG, which iOS ignores in favour of a
+screenshot. Closing it needs a 180×180 PNG.
+
+---
+
+## Phase 13 — Security & compliance
+
+- **CSP with a per-request nonce**, built in middleware and set on both the
+  request and the response so Next stamps it onto its own inline bootstrap.
+  Verified live: `nonce="…"` appears on the emitted script tags.
+  `'unsafe-inline'` for scripts would have made the policy nearly worthless
+  against XSS, which is the one attack that reaches health data through a
+  logged-in browser. `'unsafe-eval'` is development-only; `style-src` still needs
+  `'unsafe-inline'` because React writes inline style attributes no nonce covers.
+- **DPDP rights, self-service** at `/account/privacy`: consent state with
+  withdrawal, a full JSON export of everything held, the list of signed-in
+  devices with per-session revocation, and an erasure request.
+- **The export excludes emergency-card share tokens.** They are credentials, and
+  printing them into a file someone may email themselves would leak them.
+  Encrypted identifiers *are* decrypted — that is the point of an export.
+- **Erasure is a request, not a button.** Medical-records retention outlasts a
+  person's wish to be forgotten, and self-service deletion would also destroy the
+  clinic's evidence of what it prescribed. The request rides on `AccessRequest`,
+  the queue a Super Admin already works through.
+- `/api/jobs` added to the middleware's public paths — it authenticates itself,
+  and a cron cannot follow a redirect to a login form. Caught by testing the
+  endpoint rather than by reading the code.
+
+---
+
+## Phase 14 — DevOps
+
+- **`prisma.config.ts` replaces the deprecated `package.json#prisma` key**
+  (closes Phase 0 open item 5). The catch is that its presence disables Prisma's
+  automatic `.env` loading, so the file loads dotenv itself — `.env.local` first,
+  matching Next's precedence. Verified with `prisma migrate status`.
+- **`vercel-build` runs `prisma migrate deploy`** before `next build` (closes
+  Phase 0 open item 2). The risk noted at the time — a bad migration shipping
+  with a bad build — is mitigated by CI running `db:deploy` against a throwaway
+  Postgres first, so a broken migration fails there.
+- **CI now runs `pnpm smoke`** against a real built server with demo data, which
+  is the only check that proves a page renders once you *are* signed in.
+
+---
+
+## Phase 15 — Testing & QA
+
+- 129 unit tests (hermetic) and 119 integration tests (live database).
+- New unit coverage: timezone maths (a UTC server would file a 1am dose under the
+  wrong day), invoice arithmetic, frequency and duration parsing, quiet hours,
+  and role-filtered notification types.
+- `pnpm smoke` extended beyond the sidebar to the screens a nav walk cannot
+  reach — settings, privacy and the `/new` forms — which is exactly where a
+  serialisation bug survives longest because nobody clicks them in a demo.
+- Demo data extended with materialised doses and notifications, so the medicines
+  screen and the header bell are populated rather than looking broken.
+- Fixed a pre-existing unhandled rejection in the auth suite that Vitest was
+  attributing to whichever test happened to be running.
+
+**A real bug the smoke run caught:** the notification bell threw on a Neon cold
+start and took down the entire `/admin` page with a 500. A badge count is now
+fault-tolerant — it renders zero and logs. It sits in the app shell, so without
+that fix one slow query could take down every page in the product.
+
+---
+
+## Phase 16 — Production launch checklist
+
+`docs/launch-checklist.md`: the six environment variables that block a launch and
+what breaks without each, the four optional services and exactly how the product
+degrades without them, the pre-flight command sequence, what to watch in the
+first week, and the deliberate gaps with the reasoning for each.
+
+**The one that needs a decision:** development and production still share a
+single Neon database, so `pnpm db:demo --reset` currently touches live data. A
+Neon branch takes about five minutes.

@@ -1,16 +1,10 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 
-import { ProviderHome } from "@/modules/identity/provider-home";
+import { ProviderDashboard } from "@/modules/provider/ui/dashboard";
 
 export const metadata: Metadata = { title: "Clinic" };
 export const dynamic = "force-dynamic";
 
 export default function ClinicHomePage() {
-  return (
-    <ProviderHome
-      title="Clinic"
-      phase={7}
-      feature="Appointments, prescriptions, invoices and the full visit flow"
-    />
-  );
+  return <ProviderDashboard title="Clinic" base="/clinic" />;
 }

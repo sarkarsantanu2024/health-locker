@@ -351,3 +351,50 @@ export const CURRENCY = "INR" as const;
 
 /** All money is stored as an integer count of the smallest unit (paise). */
 export const MINOR_UNITS_PER_MAJOR = 100;
+
+/**
+ * DPDP consent types. Mirrors `ConsentType` in the Prisma schema.
+ *
+ * `DATA_PROCESSING` is the basis for holding anything at all — the privacy
+ * screen explains it rather than offering a switch, because withdrawing it is
+ * account closure, which goes through the erasure request instead.
+ */
+export const CONSENT_TYPES = [
+  "DATA_PROCESSING",
+  "PROVIDER_SHARING",
+  "WHATSAPP_CONTACT",
+  "AI_PROCESSING",
+  "EMERGENCY_SHARING",
+] as const;
+export type ConsentType = (typeof CONSENT_TYPES)[number];
+
+export const CONSENT_LABELS: Record<ConsentType, { label: string; description: string; required: boolean }> = {
+  DATA_PROCESSING: {
+    label: "Storing your health records",
+    description:
+      "The basis for everything else. Withdrawing this closes your account — use the deletion request below.",
+    required: true,
+  },
+  PROVIDER_SHARING: {
+    label: "Sharing with your providers",
+    description:
+      "Lets a clinic, hospital, diagnostic centre or pharmacy you are registered with see your record.",
+    required: false,
+  },
+  WHATSAPP_CONTACT: {
+    label: "Contact over WhatsApp",
+    description: "Account, payment and reminder messages sent by hand over WhatsApp.",
+    required: false,
+  },
+  AI_PROCESSING: {
+    label: "AI reading your documents",
+    description:
+      "Lets uploaded prescriptions and reports be read automatically to fill in your timeline.",
+    required: false,
+  },
+  EMERGENCY_SHARING: {
+    label: "Emergency card",
+    description: "The read-only card behind a QR code, for a first responder who cannot ask you.",
+    required: false,
+  },
+};

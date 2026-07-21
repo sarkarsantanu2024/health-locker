@@ -21,10 +21,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:demo": "tsx prisma/demo.ts",
     "create-super-admin": "tsx scripts/create-super-admin.ts",
-    "set-merchant-profile": "tsx scripts/set-merchant-profile.ts"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "set-merchant-profile": "tsx scripts/set-merchant-profile.ts",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.699.0",

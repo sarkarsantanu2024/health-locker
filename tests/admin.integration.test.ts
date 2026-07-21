@@ -17,7 +17,7 @@ vi.mock("react", async (importOriginal) => {
   return { ...actual, cache: <T,>(fn: T) => fn };
 });
 
-const { createUser, resetPassword, setUserActive } = await import(
+const { createUser, platformScope, resetPassword, setUserActive } = await import(
   "@/modules/identity/provisioning.service"
 );
 const { login } = await import("@/modules/identity/auth.service");
@@ -140,7 +140,7 @@ describe("acceptance: approved payment → account → credentials to hand over"
         accessRequestId: request.id,
         planId: "plan-patient-family",
       },
-      adminId,
+      platformScope(adminId),
     );
 
     expect(credentials.username).toMatch(/^enquiry\./);
@@ -170,7 +170,7 @@ describe("acceptance: approved payment → account → credentials to hand over"
   it("never writes the generated password to the audit trail", async () => {
     const credentials = await createUser(
       { displayName: `Audit Check ${SUFFIX}`, role: "PATIENT" },
-      adminId,
+      platformScope(adminId),
     );
 
     const entries = await prisma.auditLog.findMany({
@@ -187,10 +187,10 @@ describe("acceptance: reset password and suspend, audited", () => {
   it("issues a new temporary password that replaces the old one", async () => {
     const created = await createUser(
       { displayName: `Reset Target ${SUFFIX}`, role: "PATIENT" },
-      adminId,
+      platformScope(adminId),
     );
 
-    const reissued = await resetPassword(created.userId, adminId, "customer called");
+    const reissued = await resetPassword(created.userId, platformScope(adminId), "customer called");
 
     expect(reissued.username).toBe(created.username);
     expect(reissued.temporaryPassword).not.toBe(created.temporaryPassword);
@@ -215,10 +215,10 @@ describe("acceptance: reset password and suspend, audited", () => {
   it("suspends and reactivates, recording both", async () => {
     const created = await createUser(
       { displayName: `Suspend Target ${SUFFIX}`, role: "PATIENT" },
-      adminId,
+      platformScope(adminId),
     );
 
-    await setUserActive(created.userId, false, adminId, "spec suspension");
+    await setUserActive(created.userId, false, platformScope(adminId), "spec suspension");
     expect(
       (await prisma.user.findUniqueOrThrow({ where: { id: created.userId } })).status,
     ).toBe("SUSPENDED");
@@ -228,7 +228,7 @@ describe("acceptance: reset password and suspend, audited", () => {
       login({ username: created.username, password: created.temporaryPassword }, "10.1.2.3"),
     ).rejects.toThrow();
 
-    await setUserActive(created.userId, true, adminId);
+    await setUserActive(created.userId, true, platformScope(adminId));
     expect(
       (await prisma.user.findUniqueOrThrow({ where: { id: created.userId } })).status,
     ).toBe("ACTIVE");
@@ -241,7 +241,7 @@ describe("acceptance: reset password and suspend, audited", () => {
   });
 
   it("captures the request IP on an audited action", async () => {
-    const created = await createUser({ displayName: `IP Check ${SUFFIX}`, role: "PATIENT" }, adminId);
+    const created = await createUser({ displayName: `IP Check ${SUFFIX}`, role: "PATIENT" }, platformScope(adminId));
 
     const entry = await prisma.auditLog.findFirst({
       where: { entityId: created.userId, action: "user.created" },
@@ -256,7 +256,7 @@ describe("admin read models", () => {
   it("searches users by name, username and phone", async () => {
     const created = await createUser(
       { displayName: `Searchable ${SUFFIX}`, role: "PATIENT", phone: "9812345678" },
-      adminId,
+      platformScope(adminId),
     );
 
     const byName = await listUsers({ query: "Searchable" }, adminId);

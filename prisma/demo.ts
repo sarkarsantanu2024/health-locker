@@ -51,6 +51,10 @@ async function wipe(): Promise<void> {
   await prisma.prescription.deleteMany({ where: { patientId: { in: patientIds } } });
   await prisma.medicationDose.deleteMany({ where: { schedule: { patientId: { in: patientIds } } } });
   await prisma.medicationSchedule.deleteMany({ where: { patientId: { in: patientIds } } });
+  await prisma.notificationLog.deleteMany({
+    where: { notification: { id: { startsWith: "demo-notif-" } } },
+  });
+  await prisma.notification.deleteMany({ where: { id: { startsWith: "demo-notif-" } } });
   await prisma.encounter.deleteMany({ where: { patientId: { in: patientIds } } });
   await prisma.appointment.deleteMany({ where: { patientId: { in: patientIds } } });
   await prisma.vaccination.deleteMany({ where: { patientId: { in: patientIds } } });
@@ -564,6 +568,79 @@ async function accessRequests(): Promise<void> {
   process.stdout.write("  onboarding: 3 access requests awaiting action\n");
 }
 
+/**
+ * Doses and notifications.
+ *
+ * Runs last, because it materialises doses from the schedules created above and
+ * reads the notification recipients from the demo users. Without this the
+ * medicines screen and the header bell are both empty, which reads as broken
+ * rather than as "nothing due".
+ */
+async function dosesAndNotifications(): Promise<void> {
+  const { materialiseAllDue } = await import("../src/modules/patient/medication.service");
+
+  const created = await materialiseAllDue();
+
+  // One dose earlier today already taken, so the adherence figure is not 0/0.
+  const earlier = await prisma.medicationDose.findFirst({
+    where: { schedule: { deletedAt: null }, dueAt: { lte: new Date() } },
+    orderBy: { dueAt: "desc" },
+    select: { id: true },
+  });
+
+  if (earlier) {
+    await prisma.medicationDose.update({
+      where: { id: earlier.id },
+      data: { status: "TAKEN", takenAt: new Date() },
+    });
+  }
+
+  const priyaUser = await prisma.user.findUnique({
+    where: { username: "priya.demo" },
+    select: { id: true },
+  });
+
+  if (priyaUser) {
+    const notices = [
+      {
+        id: "demo-notif-report",
+        type: "REPORT_READY" as const,
+        title: "Lipid profile is ready",
+        body: "2 values are outside the usual range. Please discuss this with your doctor.",
+        data: { url: "/patient/reports" },
+        readAt: null,
+      },
+      {
+        id: "demo-notif-payment",
+        type: "PAYMENT_DUE" as const,
+        title: "Invoice INV-2026-00001",
+        body: "₹1,480.00 · Sunrise Family Clinic",
+        data: { url: "/patient/billing" },
+        readAt: null,
+      },
+      {
+        id: "demo-notif-medicine",
+        type: "MEDICINE_REMINDER" as const,
+        title: "Time for Thyronorm",
+        body: "75mcg · due at 7:00 am",
+        data: { url: "/patient/medicines" },
+        readAt: daysAgo(1),
+      },
+    ];
+
+    for (const notice of notices) {
+      await prisma.notification.upsert({
+        where: { id: notice.id },
+        update: {},
+        create: { ...notice, userId: priyaUser.id },
+      });
+    }
+  }
+
+  process.stdout.write(`  reminders: ${created} dose(s) materialised, 3 notifications
+`);
+}
+
 async function main(): Promise<void> {
   if (process.env.NODE_ENV === "production") {
     throw new Error("Refusing to write demo medical records with NODE_ENV=production.");
@@ -582,6 +659,7 @@ async function main(): Promise<void> {
   await pharmacy();
   await moneyTrail();
   await accessRequests();
+  await dosesAndNotifications();
 
   const line = "─".repeat(58);
   process.stdout.write(

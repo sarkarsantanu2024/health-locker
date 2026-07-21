@@ -3,6 +3,8 @@ import { Prisma, type PaymentMethod, type PaymentPurpose } from "@prisma/client"
 import { audit } from "@/lib/audit";
 import { decryptNullable } from "@/lib/crypto";
 import { prisma } from "@/lib/db";
+import { money } from "@/lib/format";
+import { notifyPatient } from "@/modules/notify/notify.service";
 import { AppError } from "@/shared/errors";
 import type { PaymentInstructions } from "@/modules/billing/payment.provider";
 import { buildUpiLink, generateRefCode, isPlausibleUtr, normaliseUtr, upiQrSvg } from "@/modules/billing/upi";
@@ -417,6 +419,18 @@ export async function approvePayment(
     },
   });
 
+  // Outside the transaction on purpose: a push that fails must not roll back a
+  // verified payment.
+  if (request.patientId) {
+    await notifyPatient(request.patientId, {
+      type: "PAYMENT_APPROVED",
+      title: "Payment confirmed",
+      body: `We matched ${money(request.amountMinor)} against reference ${request.refCode}. Your access is active.`,
+      data: { url: "/patient/billing", refCode: request.refCode },
+      dedupeKey: `payment-approved:${submission.id}`,
+    });
+  }
+
   return { alreadyApproved: false };
 }
 
@@ -431,7 +445,11 @@ export async function rejectPayment(
 ): Promise<void> {
   const submission = await prisma.paymentSubmission.findFirst({
     where: { id: submissionId },
-    select: { id: true, status: true, paymentRequest: { select: { id: true, refCode: true, orgId: true } } },
+    select: {
+      id: true,
+      status: true,
+      paymentRequest: { select: { id: true, refCode: true, orgId: true, patientId: true } },
+    },
   });
 
   if (!submission) throw new AppError("NOT_FOUND", "Not found.");
@@ -459,6 +477,16 @@ export async function rejectPayment(
     orgId: submission.paymentRequest.orgId,
     metadata: { refCode: submission.paymentRequest.refCode, note },
   });
+
+  if (submission.paymentRequest.patientId) {
+    await notifyPatient(submission.paymentRequest.patientId, {
+      type: "PAYMENT_REJECTED",
+      title: "We could not match your payment",
+      body: `${note} You can submit a corrected reference for ${submission.paymentRequest.refCode}.`,
+      data: { url: `/pay/${submission.paymentRequest.refCode}` },
+      dedupeKey: `payment-rejected:${submission.id}`,
+    });
+  }
 }
 
 /** The admin verification queue. */

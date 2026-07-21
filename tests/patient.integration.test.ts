@@ -37,7 +37,7 @@ const { addFamilyMember, listFamily, recordConsent, hasConsent } = await import(
   "@/modules/patient/patient.service"
 );
 const { login } = await import("@/modules/identity/auth.service");
-const { createUser } = await import("@/modules/identity/provisioning.service");
+const { createUser, platformScope } = await import("@/modules/identity/provisioning.service");
 const { resetMemoryLimiter } = await import("@/lib/ratelimit");
 
 const prisma = new PrismaClient();
@@ -102,7 +102,7 @@ beforeAll(async () => {
 
   const created = await createUser(
     { displayName: `Owner ${SUFFIX}`, role: "PATIENT", username: `owner.${SUFFIX}` },
-    adminId,
+    platformScope(adminId),
   );
 
   const ownerPatient = await prisma.patient.findFirstOrThrow({

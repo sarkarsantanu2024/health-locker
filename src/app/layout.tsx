@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
+import { ServiceWorkerRegistrar } from "@/modules/pwa/service-worker";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -66,6 +69,9 @@ export default function RootLayout({
           Skip to content
         </a>
         {children}
+        {/* Registers the offline shell and the push handler for every visitor,
+            installed or not. */}
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );

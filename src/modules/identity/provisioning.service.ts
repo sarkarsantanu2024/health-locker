@@ -24,6 +24,66 @@ export interface ProvisionedCredentials {
   temporaryPassword: string;
 }
 
+/**
+ * Who is doing the provisioning, and what they are allowed to reach.
+ *
+ * `user:create`, `user:reset-password` and `user:suspend` are held by provider
+ * org admins as well as by platform staff — a clinic has to be able to run its
+ * own reception accounts. Without this scope, the org id and user id would come
+ * straight from the form, and a clinic admin could mint a user inside another
+ * tenant or reset a Super Admin's password. `restrictToOrgId` is the caller's
+ * own tenant, taken from their session and never from the request.
+ */
+export interface ActorScope {
+  actorId: string;
+  /** Null for platform staff, who legitimately act across every tenant. */
+  restrictToOrgId: string | null;
+}
+
+/** Platform staff: unrestricted, because that is their job. */
+export function platformScope(actorId: string): ActorScope {
+  return { actorId, restrictToOrgId: null };
+}
+
+/** A provider admin, confined to their own tenant. */
+export function tenantScope(actorId: string, orgId: string | null): ActorScope {
+  if (!orgId) {
+    throw new AppError("FORBIDDEN", "This action requires a provider account.");
+  }
+
+  return { actorId, restrictToOrgId: orgId };
+}
+
+/** Roles a provider org admin may hand out — never a platform or consumer role. */
+function assertRoleWithinScope(role: Role, scope: ActorScope): void {
+  if (!scope.restrictToOrgId) return;
+
+  if (PLATFORM_ROLES.includes(role) || CONSUMER_ROLES.includes(role)) {
+    throw new AppError("FORBIDDEN", "You can only create staff accounts for your organisation.");
+  }
+}
+
+/** Loads a target user, refusing anyone outside the caller's tenant. */
+async function loadTargetUser(userId: string, scope: ActorScope) {
+  const user = await prisma.user.findFirst({
+    where: {
+      id: userId,
+      deletedAt: null,
+      // Scoped in the WHERE rather than checked afterwards, so an id belonging
+      // to another tenant simply does not exist as far as this caller is
+      // concerned.
+      ...(scope.restrictToOrgId ? { orgId: scope.restrictToOrgId } : {}),
+    },
+    select: { id: true, username: true, role: true, orgId: true, status: true },
+  });
+
+  // NOT_FOUND, not FORBIDDEN: confirming an account exists in another tenant is
+  // itself a disclosure.
+  if (!user) throw new AppError("NOT_FOUND", "That user does not exist.");
+
+  return user;
+}
+
 /** Finds a free username, starting from a suggestion derived from the name. */
 async function resolveUsername(desired: string | undefined, displayName: string): Promise<string> {
   if (desired) {
@@ -81,9 +141,15 @@ async function validateOrgForRole(role: Role, orgId: string | undefined): Promis
 
 export async function createUser(
   input: CreateUserInput,
-  actorId: string,
+  scope: ActorScope,
 ): Promise<ProvisionedCredentials> {
-  const orgId = await validateOrgForRole(input.role, input.orgId || undefined);
+  const { actorId } = scope;
+
+  assertRoleWithinScope(input.role, scope);
+
+  // A scoped caller's own tenant wins over whatever the form posted.
+  const requestedOrgId = scope.restrictToOrgId ?? input.orgId ?? undefined;
+  const orgId = await validateOrgForRole(input.role, requestedOrgId || undefined);
   const username = await resolveUsername(input.username || undefined, input.displayName);
   const temporaryPassword = generateTemporaryPassword();
 
@@ -151,15 +217,11 @@ export async function createUser(
  */
 export async function resetPassword(
   userId: string,
-  actorId: string,
+  scope: ActorScope,
   reason?: string,
 ): Promise<ProvisionedCredentials> {
-  const user = await prisma.user.findFirst({
-    where: { id: userId, deletedAt: null },
-    select: { id: true, username: true, orgId: true },
-  });
-
-  if (!user) throw new AppError("NOT_FOUND", "That user does not exist.");
+  const { actorId } = scope;
+  const user = await loadTargetUser(userId, scope);
 
   const temporaryPassword = generateTemporaryPassword();
 
@@ -192,15 +254,11 @@ export async function resetPassword(
 export async function setUserActive(
   userId: string,
   active: boolean,
-  actorId: string,
+  scope: ActorScope,
   reason?: string,
 ): Promise<void> {
-  const user = await prisma.user.findFirst({
-    where: { id: userId, deletedAt: null },
-    select: { id: true, username: true, role: true, orgId: true, status: true },
-  });
-
-  if (!user) throw new AppError("NOT_FOUND", "That user does not exist.");
+  const { actorId } = scope;
+  const user = await loadTargetUser(userId, scope);
 
   if (userId === actorId && !active) {
     throw new AppError("BAD_REQUEST", "You cannot suspend your own account.");
