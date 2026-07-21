@@ -11,9 +11,14 @@ import type { Role } from "@/shared/enums";
 import type { PermissionKey } from "@/shared/permissions";
 
 /**
- * Provider console shell: fixed left sidebar on desktop, slide-over drawer on
- * mobile. Chosen over a top bar because Phases 7–11 push each portal to 7–9
- * sections, which would overflow a horizontal nav on a laptop.
+ * Provider console: fixed left sidebar on desktop, slide-over drawer on mobile.
+ * A sidebar rather than a top bar because each portal runs to 7–9 sections,
+ * which would overflow a horizontal nav on a laptop.
+ *
+ * Denser than the patient app — a receptionist works this all day — but still a
+ * product rather than an admin panel: the sidebar sits on its own surface, the
+ * active item is a filled pill instead of a highlighted row, and the drawer on
+ * mobile behaves like an app's, with press feedback and safe-area padding.
  *
  * Takes `role` + `permissions` rather than a ready-made nav array: the nav table
  * holds Lucide icon components, and a function cannot be serialised across the
@@ -38,13 +43,21 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+/** The deepest match wins, so /clinic/patients does not also light up /clinic. */
+function currentItem(pathname: string, nav: NavItem[]): NavItem | undefined {
+  return [...nav]
+    .sort((a, b) => b.href.length - a.href.length)
+    .find((item) => isActive(pathname, item.href));
+}
+
 function NavLinks({ nav, onNavigate }: { nav: NavItem[]; onNavigate?: () => void }) {
   const pathname = usePathname();
+  const active = currentItem(pathname, nav);
 
   return (
-    <ul className="space-y-0.5">
+    <ul className="space-y-1">
       {nav.map((item) => {
-        const active = isActive(pathname, item.href);
+        const current = active?.href === item.href;
         const Icon = item.icon;
 
         return (
@@ -52,15 +65,15 @@ function NavLinks({ nav, onNavigate }: { nav: NavItem[]; onNavigate?: () => void
             <Link
               href={item.href}
               onClick={onNavigate}
-              aria-current={active ? "page" : undefined}
+              aria-current={current ? "page" : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                active
-                  ? "bg-primary-subtle font-medium text-primary"
+                "press flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+                current
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
-              <Icon aria-hidden className="size-4 shrink-0" />
+              <Icon aria-hidden className="size-4.5 shrink-0" />
               {item.label}
             </Link>
           </li>
@@ -75,7 +88,7 @@ function Wordmark({ portalLabel }: { portalLabel: string }) {
     <div className="flex items-center gap-2.5">
       <span
         aria-hidden
-        className="flex size-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground"
+        className="flex size-9 items-center justify-center rounded-xl bg-brand-gradient text-sm font-bold text-white shadow-sm"
       >
         H
       </span>
@@ -96,7 +109,16 @@ export function ConsoleShell({
   bell,
   children,
 }: ConsoleShellProps) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const pathname = usePathname();
+  /*
+   * The drawer remembers which screen it was opened on and is treated as closed
+   * anywhere else — derived during render rather than closed from an effect, so
+   * it is already shut on the first frame of the new screen and the back button
+   * behaves.
+   */
+  const [drawer, setDrawer] = useState({ open: false, path: pathname });
+  const drawerOpen = drawer.open && drawer.path === pathname;
+  const setDrawerOpen = (open: boolean) => setDrawer({ open, path: pathname });
 
   const portalLabel = PORTAL_LABEL[role];
   const roleLabel = role.replace(/_/g, " ").toLowerCase();
@@ -104,48 +126,71 @@ export function ConsoleShell({
     (item) => !item.permission || permissions.includes(item.permission as PermissionKey),
   );
 
+  const active = currentItem(pathname, nav);
+
   return (
     <div className="min-h-dvh bg-background">
-      {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-border bg-surface lg:flex">
-        <div className="border-b border-border px-4 py-4">
+      {/* --- desktop sidebar ------------------------------------------------ */}
+      <aside
+        data-app-chrome
+        className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-surface lg:flex"
+      >
+        <div className="px-4 py-5">
           <Wordmark portalLabel={portalLabel} />
         </div>
-        <nav aria-label="Primary" className="flex-1 overflow-y-auto p-3">
+
+        <nav aria-label="Primary" className="flex-1 overflow-y-auto px-3 pb-3">
           <NavLinks nav={nav} />
         </nav>
+
         <div className="border-t border-border p-3">
-          <p className="truncate px-3 text-sm font-medium">{displayName}</p>
-          <p className="truncate px-3 pb-2 text-xs text-muted-foreground">{roleLabel}</p>
+          <div className="mb-2 flex items-center gap-3 px-2">
+            <span
+              aria-hidden
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-sm font-semibold text-primary"
+            >
+              {displayName.trim().charAt(0).toUpperCase() || "?"}
+            </span>
+            <span className="min-w-0 leading-tight">
+              <span className="block truncate text-sm font-medium">{displayName}</span>
+              <span className="block truncate text-xs text-muted-foreground">{roleLabel}</span>
+            </span>
+          </div>
           {signOut}
         </div>
       </aside>
 
-      {/* Mobile drawer */}
+      {/* --- mobile drawer --------------------------------------------------- */}
       {drawerOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
             aria-label="Close menu"
-            className="absolute inset-0 bg-foreground/40"
+            className="absolute inset-0 bg-foreground/40 backdrop-blur-[2px]"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 flex w-72 flex-col border-r border-border bg-surface">
-            <div className="flex items-center justify-between border-b border-border px-4 py-4">
+
+          <div
+            data-app-chrome
+            className="absolute inset-y-0 left-0 flex w-72 flex-col border-r border-border bg-surface pt-safe shadow-xl"
+          >
+            <div className="flex items-center justify-between px-4 py-4">
               <Wordmark portalLabel={portalLabel} />
               <button
                 type="button"
                 aria-label="Close menu"
                 onClick={() => setDrawerOpen(false)}
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+                className="press rounded-full p-2 text-muted-foreground hover:bg-muted"
               >
                 <X className="size-5" />
               </button>
             </div>
-            <nav aria-label="Primary" className="flex-1 overflow-y-auto p-3">
+
+            <nav aria-label="Primary" className="flex-1 overflow-y-auto px-3 pb-3">
               <NavLinks nav={nav} onNavigate={() => setDrawerOpen(false)} />
             </nav>
-            <div className="border-t border-border p-3">
+
+            <div className="border-t border-border p-3 pb-safe">
               <p className="truncate px-3 text-sm font-medium">{displayName}</p>
               <p className="truncate px-3 pb-2 text-xs text-muted-foreground">{roleLabel}</p>
               {signOut}
@@ -154,24 +199,43 @@ export function ConsoleShell({
         </div>
       ) : null}
 
-      <div className="lg:pl-60">
-        <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-surface/85 px-4 backdrop-blur">
-          <button
-            type="button"
-            aria-label="Open menu"
-            aria-expanded={drawerOpen}
-            onClick={() => setDrawerOpen(true)}
-            className="rounded-md p-2 text-muted-foreground hover:bg-muted lg:hidden"
-          >
-            <Menu className="size-5" />
-          </button>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{orgName ?? portalLabel}</p>
+      <div className="lg:pl-64">
+        {/* --- top bar ------------------------------------------------------ */}
+        <header
+          data-app-chrome
+          className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-lg"
+        >
+          <div className="flex h-app-bar items-center gap-2 px-3 sm:px-4">
+            <button
+              type="button"
+              aria-label="Open menu"
+              aria-expanded={drawerOpen}
+              onClick={() => setDrawerOpen(true)}
+              className="press rounded-xl p-2 text-muted-foreground hover:bg-muted lg:hidden"
+            >
+              <Menu className="size-5" />
+            </button>
+
+            <div className="min-w-0 flex-1 leading-tight">
+              {/* The section name is what tells you where you are; the org name
+                  is context, so it is secondary. */}
+              <p className="truncate text-sm font-semibold tracking-tight">
+                {active?.label ?? portalLabel}
+              </p>
+              {orgName ? (
+                <p className="truncate text-xs text-muted-foreground">{orgName}</p>
+              ) : null}
+            </div>
+
+            {bell}
           </div>
-          {bell}
         </header>
 
-        <main id="main" className="mx-auto max-w-7xl p-4 sm:p-6">
+        <main
+          id="main"
+          key={pathname}
+          className="animate-app-enter mx-auto max-w-7xl p-4 pb-16 sm:p-6"
+        >
           {children}
         </main>
       </div>

@@ -30,6 +30,9 @@ const ACCESS_COOKIE = `${env.AUTH_COOKIE_PREFIX}_at`;
  * `/emergency` is public by design — it has to work when the patient cannot.
  */
 const PUBLIC_PATHS = [
+  // The marketing site. `/` is matched exactly below rather than by prefix,
+  // which would make every path in the product public.
+  "/pricing",
   "/login",
   "/signup",
   "/pay",
@@ -45,6 +48,10 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublic(pathname: string): boolean {
+  // The landing page decides for itself: it redirects a signed-in visitor to
+  // their portal rather than showing them the sales pitch.
+  if (pathname === "/") return true;
+
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 

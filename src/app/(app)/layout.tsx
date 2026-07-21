@@ -1,4 +1,5 @@
 import { LogOut } from "lucide-react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -12,6 +13,13 @@ import { CONSUMER_ROLES } from "@/shared/enums";
 import { Button } from "@/ui/button";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Explicit, even though the root layout already defaults to noindex. The
+ * marketing pages opt back IN to indexing, so the deny-by-default has to be
+ * restated on the surface that must never be crawled.
+ */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 function SignOutButton({ full }: { full?: boolean }) {
   return (

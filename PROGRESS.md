@@ -600,3 +600,82 @@ first week, and the deliberate gaps with the reasoning for each.
 **The one that needs a decision:** development and production still share a
 single Neon database, so `pnpm db:demo --reset` currently touches live data. A
 Neon branch takes about five minutes.
+
+---
+
+## Phase 17 — Product design and the Android app
+
+Raised after Phase 16: the product "looked like an admin dashboard", should
+"look like a web application", and should "behave like an Android app on mobile".
+
+**Decisions taken**
+
+- **There is now a public website.** `/` used to redirect straight to `/login`,
+  which is what made the whole thing read as an internal tool — an anonymous
+  visitor could not see what the product was. `/` is a real landing page and
+  `/pricing` reads the actual `Plan` rows, because a hard-coded price list is how
+  you end up advertising one number and charging another. A signed-in visitor is
+  still redirected to their portal rather than shown the pitch.
+- **Indexing is now deny-by-default with a narrow opt-in.** The root layout keeps
+  `noindex`; only the marketing pages opt back in, and the `(app)` layout
+  restates it. Health data must never be crawled, so the exception is the thing
+  that has to be explicit.
+- **The patient shell was rebuilt as an app, not a page.** A fixed app bar and
+  tab bar inside the safe areas, so content scrolls *under* the chrome instead of
+  the page moving as one sheet; the app bar names the current screen the way a
+  native one does; five tabs and then a "More" sheet, because more than five
+  targets on a phone are too narrow to hit reliably.
+- **The overflow sheet and the console drawer derive their open state from the
+  pathname during render** rather than closing themselves from an effect. An
+  effect closes them one frame late, and misses the back button entirely — which
+  is the "back did nothing" bug.
+- **Native behaviour lives in CSS, not in JavaScript.** Overscroll containment,
+  no tap-highlight flash, `touch-action: manipulation`, and no text selection on
+  chrome. These six rules are most of what separates an app from a website on a
+  phone, and none of them needs a framework.
+- **Sign-out is not in the chrome.** It sits in the More sheet on a phone, the
+  way a native app buries it — a mis-tap next to the tabs loses your place. The
+  desktop bar keeps it, because there is no sheet there.
+
+**Shipped**
+
+- `src/app/globals.css` — reworked tokens: two-layer elevation, a display type
+  scale, brand gradients, safe-area utilities, press feedback, and a print
+  stylesheet for prescriptions and reports.
+- `src/app/(marketing)/` — landing page, pricing page and the public site chrome.
+- Rebuilt `consumer-shell.tsx` and `console-shell.tsx`.
+- A two-column auth layout, so a sign-in link from anywhere still says what the
+  product is.
+- Capacitor Android wrapper: `capacitor.config.ts`, the fallback shell generator,
+  `NativeBridge` (hardware back button → in-app history, splash hidden when the
+  first screen is actually ready, status bar following the theme), and
+  `android:add` / `android:sync` / `android:apk` scripts.
+
+**The constraint worth stating plainly**
+
+The APK is a **native shell over the deployed server, not a static bundle**, and
+it cannot be anything else: every screen is server-rendered behind an auth guard
+and every mutation is a server action, so there is nothing to package offline.
+What the wrapper buys is a home-screen icon, a native splash, no address bar, a
+working hardware back button and a Play-ready artifact. `CAP_SERVER_URL` has no
+default on purpose — an APK built against `localhost` installs fine and then
+shows a blank screen on a real phone.
+
+**Verified**
+
+- `/` and `/pricing` render for an anonymous visitor and are now part of
+  `pnpm smoke`; a signed-in visitor gets `307 → /patient`.
+- Pricing renders the seeded plans (₹499, ₹1,999, ₹5,999) rather than fixtures.
+- All 69 authenticated pages still render across six roles.
+- `pnpm android:add` scaffolds the Android project and links all three plugins.
+
+**Open items / deferred**
+
+1. **The launcher icons are Capacitor's placeholder.** Replacing
+   `android/app/src/main/res/mipmap-*` is a prerequisite for publishing.
+2. **No APK has been built here** — `assembleDebug` needs a JDK and the Android
+   SDK, which are not installed on this machine. The project is scaffolded and
+   the command is documented.
+3. **The provider consoles were softened, not redesigned.** They are deliberately
+   denser than the patient app; if that is still too close to an admin panel, the
+   next step is a different information architecture rather than more styling.

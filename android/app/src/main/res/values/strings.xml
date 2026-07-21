@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">HealthLocker</string>
+    <string name="title_activity_main">HealthLocker</string>
+    <string name="package_name">com.healthlocker.app</string>
+    <string name="custom_url_scheme">com.healthlocker.app</string>
+</resources>
