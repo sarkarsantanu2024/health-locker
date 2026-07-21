@@ -86,7 +86,9 @@ export function ProvisionCard({
   const paymentVerified = request.payment?.status === "APPROVED";
 
   return (
-    <Card>
+    /* Verified money is emerald, an unverified claim is amber: the colour of the
+       card is the same question the admin is here to answer. */
+    <Card hue={paymentVerified ? "emerald" : "amber"}>
       <CardContent className="space-y-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">

@@ -223,6 +223,8 @@ export function PaymentQueue({ submissions }: { submissions: QueuedSubmission[] 
       <EmptyState
         title="Nothing to verify"
         description="Submitted UPI, QR and bank payments appear here for approval."
+        art="wallet"
+        tone="amber"
       />
     );
   }

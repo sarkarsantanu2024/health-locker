@@ -4,10 +4,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { requireUser } from "@/lib/auth/session";
+import { cn } from "@/lib/utils";
 import { NAV_BY_ROLE } from "@/modules/identity/navigation";
 import { buttonVariants } from "@/ui/button";
 import { Card, CardContent } from "@/ui/card";
 import { PageHeader } from "@/ui/page-header";
+import { TONE_STYLES } from "@/ui/tone";
 import { CONSUMER_ROLES, PORTAL_BY_ROLE } from "@/shared/enums";
 
 export const dynamic = "force-dynamic";
@@ -58,11 +60,18 @@ export default async function PlannedSectionPage({
 
   return (
     <>
-      <PageHeader title={item.label} description={item.summary} />
+      <PageHeader title={item.label} description={item.summary} icon={Icon} tone={item.tone} />
 
-      <Card tone={consumer ? "consumer" : "console"}>
+      {/* The placeholder wears the section's own hue, so an unbuilt screen still
+          looks like part of the product rather than a hole in it. */}
+      <Card tone={consumer ? "consumer" : "console"} hue={item.tone}>
         <CardContent className="flex flex-col items-center gap-4 px-6 py-14 text-center">
-          <span className="flex size-12 items-center justify-center rounded-2xl bg-primary-subtle text-primary">
+          <span
+            className={cn(
+              "flex size-12 items-center justify-center rounded-2xl",
+              TONE_STYLES[item.tone].chipSolid,
+            )}
+          >
             <Icon aria-hidden className="size-6" />
           </span>
 

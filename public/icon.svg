@@ -1,7 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="HealthLocker">
-  <rect width="512" height="512" rx="112" fill="#0d7266"/>
+  <!-- Kept in step with <LogoMark> in src/ui/logo.tsx. That one uses CSS variables so it
+       follows the theme; this one is a standalone file (favicon, PWA icon, Android
+       launcher) and so has to carry literal hex — the two must be edited together. -->
+  <defs>
+    <linearGradient id="hl-icon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f7a6c"/>
+      <stop offset="100%" stop-color="#22b8a0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#hl-icon)"/>
   <!-- A locker shackle over a medical cross: storage plus health, in one mark. -->
-  <path d="M176 216v-40a80 80 0 0 1 160 0v40" fill="none" stroke="#ffffff" stroke-width="34" stroke-linecap="round" opacity="0.85"/>
+  <path d="M176 216v-40a80 80 0 0 1 160 0v40" fill="none" stroke="#ffffff" stroke-width="34" stroke-linecap="round" opacity="0.9"/>
   <rect x="136" y="216" width="240" height="184" rx="32" fill="#ffffff"/>
-  <path d="M256 268v80M216 308h80" stroke="#0d7266" stroke-width="30" stroke-linecap="round"/>
+  <path d="M256 262v92M210 308h92" stroke="#0f7a6c" stroke-width="30" stroke-linecap="round"/>
+  <!-- The pulse is what stops it reading as a generic first-aid icon. -->
+  <path d="M168 362h34l16-30 22 52 18-36 14 22h44" fill="none" stroke="#22b8a0" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
 </svg>

@@ -1,4 +1,4 @@
-import { Search, UserPlus } from "lucide-react";
+import { Search, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 
 import { requireTenantPermission } from "@/lib/auth/session";
@@ -8,6 +8,7 @@ import { buttonVariants } from "@/ui/button";
 import { Input } from "@/ui/field";
 import { EmptyState, PageHeader } from "@/ui/page-header";
 import { Table, TableWrap, Tbody, Td, Th, Thead, Tr } from "@/ui/table";
+import { toneFor } from "@/ui/tone";
 
 /**
  * The tenant's patient register, shared by all four provider consoles.
@@ -24,6 +25,8 @@ export async function ProviderPatientsPage({ base, query }: { base: string; quer
     <>
       <PageHeader
         title="Patients"
+        icon={Users}
+        tone={toneFor("patient")}
         description="Everyone registered with this organisation."
         action={
           <Link href={`${base}/patients/new`} className={buttonVariants({ size: "sm" })}>
@@ -61,6 +64,9 @@ export async function ProviderPatientsPage({ base, query }: { base: string; quer
               ? "This searches only your own register — a patient registered elsewhere will not appear."
               : "Register your first patient to start booking appointments and recording visits."
           }
+          /* "no results" and "no data" are different problems and get different art. */
+          art={query ? "search" : "people"}
+          tone={toneFor("patient")}
           action={
             <Link href={`${base}/patients/new`} className={buttonVariants({ size: "sm" })}>
               Register patient

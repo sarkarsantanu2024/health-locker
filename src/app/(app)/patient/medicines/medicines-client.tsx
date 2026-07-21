@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, Pill, Plus, X } from "lucide-react";
+import { Check, Pause, Pill, Play, Plus, X } from "lucide-react";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { formatTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
   createScheduleAction,
   deleteScheduleAction,
@@ -18,8 +19,13 @@ import { Button } from "@/ui/button";
 import { Card, CardContent } from "@/ui/card";
 import { Field, Input, Label } from "@/ui/field";
 import { EmptyState } from "@/ui/page-header";
+import { TONE_STYLES, toneFor } from "@/ui/tone";
 
 const initial: PatientActionState = { ok: false };
+
+/** Rose is what a medicine is, on every screen in the app. */
+const MEDICINE_TONE = toneFor("medicine");
+const medicine = TONE_STYLES[MEDICINE_TONE];
 
 export interface DoseItem {
   id: string;
@@ -48,8 +54,20 @@ function DoseRow({ dose, readOnly }: { dose: DoseItem; readOnly: boolean }) {
   const done = state.ok || dose.status === "TAKEN" || dose.status === "SKIPPED";
 
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-consumer border border-border bg-surface p-4">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary-subtle text-primary">
+    <li
+      className={cn(
+        "bg-hue-wash flex flex-wrap items-center gap-3 rounded-consumer border bg-surface p-4",
+        // A dose still to take keeps its hue; one that is dealt with steps back.
+        done ? "border-border opacity-80" : medicine.border,
+        medicine.gradientVars,
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-11 shrink-0 items-center justify-center rounded-2xl",
+          done ? "bg-muted text-muted-foreground" : medicine.chipSolid,
+        )}
+      >
         <Pill aria-hidden className="size-5" />
       </span>
 
@@ -95,6 +113,8 @@ export function TodayDoses({ doses, readOnly }: { doses: DoseItem[]; readOnly: b
   if (doses.length === 0) {
     return (
       <EmptyState
+        art="medicine"
+        tone={MEDICINE_TONE}
         title="Nothing due today"
         description="Doses appear here as their time comes round."
       />
@@ -119,7 +139,12 @@ function ScheduleRow({ schedule, readOnly }: { schedule: ScheduleItem; readOnly:
   const paused = statusState.ok ? null : schedule.status === "PAUSED";
 
   return (
-    <li className="rounded-consumer border border-border bg-surface p-4">
+    <li
+      className={cn(
+        "bg-hue-wash rounded-consumer border border-border bg-surface p-4",
+        medicine.gradientVars,
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-medium">
@@ -148,6 +173,11 @@ function ScheduleRow({ schedule, readOnly }: { schedule: ScheduleItem; readOnly:
             <input type="hidden" name="scheduleId" value={schedule.id} />
             <input type="hidden" name="status" value={paused ? "ACTIVE" : "PAUSED"} />
             <Button type="submit" variant="secondary" size="sm">
+              {paused ? (
+                <Play aria-hidden className="size-4" />
+              ) : (
+                <Pause aria-hidden className="size-4" />
+              )}
               {paused ? "Resume" : "Pause"}
             </Button>
           </form>
@@ -173,6 +203,8 @@ export function ScheduleList({
   if (schedules.length === 0) {
     return (
       <EmptyState
+        art="medicine"
+        tone={MEDICINE_TONE}
         title="No medicines yet"
         description="Add one below, or they appear here automatically when a doctor prescribes them."
       />
@@ -218,7 +250,7 @@ export function AddScheduleForm() {
     setTimes(times.includes(time) ? times.filter((t) => t !== time) : [...times, time].sort());
 
   return (
-    <Card tone="consumer">
+    <Card tone="consumer" hue={MEDICINE_TONE}>
       <CardContent className="p-5">
         <form action={action} className="space-y-4">
           {state.error ? <Alert tone="danger">{state.error}</Alert> : null}
@@ -242,12 +274,12 @@ export function AddScheduleForm() {
                     type="button"
                     onClick={() => toggle(time)}
                     aria-pressed={on}
-                    className={
-                      "min-h-11 rounded-xl border px-4 text-sm " +
-                      (on
-                        ? "border-primary bg-primary-subtle font-medium text-primary"
-                        : "border-border-strong bg-surface")
-                    }
+                    className={cn(
+                      "press min-h-11 rounded-xl border px-4 text-sm",
+                      on
+                        ? cn("font-medium", medicine.chipSolid, medicine.border)
+                        : "border-border-strong bg-surface",
+                    )}
                   >
                     {time}
                   </button>

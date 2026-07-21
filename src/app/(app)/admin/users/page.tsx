@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -10,6 +10,7 @@ import { buttonVariants } from "@/ui/button";
 import { Card, CardContent } from "@/ui/card";
 import { Input, Select } from "@/ui/field";
 import { EmptyState, PageHeader } from "@/ui/page-header";
+import { toneFor } from "@/ui/tone";
 
 export const metadata: Metadata = { title: "Users" };
 export const dynamic = "force-dynamic";
@@ -49,6 +50,8 @@ export default async function AdminUsersPage({
     <>
       <PageHeader
         title="Users"
+        icon={Users}
+        tone={toneFor("staff")}
         description={`${result.total} account${result.total === 1 ? "" : "s"}. Passwords are only ever reset to a temporary one — they cannot be read.`}
       />
 
@@ -94,6 +97,8 @@ export default async function AdminUsersPage({
         <EmptyState
           title="No users match"
           description="Try a different search, or clear the filters."
+          art="search"
+          tone={toneFor("staff")}
           action={
             <Link href="/admin/users" className={buttonVariants({ variant: "secondary", size: "sm" })}>
               Clear filters

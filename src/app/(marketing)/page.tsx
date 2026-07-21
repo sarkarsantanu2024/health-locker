@@ -20,8 +20,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth/session";
+import { cn } from "@/lib/utils";
+import { Photo } from "@/modules/marketing/photo";
 import { PORTAL_BY_ROLE } from "@/shared/enums";
 import { buttonVariants } from "@/ui/button";
+import { TONE_STYLES, type Tone } from "@/ui/tone";
 
 export const metadata: Metadata = {
   title: "HealthLocker — your family's health records, in one place",
@@ -32,77 +35,105 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const PATIENT_FEATURES = [
+/*
+ * Each feature wears the hue its subject wears inside the product — medicines
+ * are rose in the app, so medicine reminders are rose here. A visitor who signs
+ * up meets a colour scheme they have already been taught.
+ */
+const PATIENT_FEATURES: Array<{
+  icon: typeof Activity;
+  title: string;
+  body: string;
+  tone: Tone;
+}> = [
   {
     icon: Activity,
     title: "One timeline, not ten folders",
     body: "Every prescription, report, visit, vaccination and bill in one list, newest first — for you and for everyone you look after.",
+    tone: "teal",
   },
   {
     icon: Pill,
     title: "Medicine reminders that know the dose",
     body: "When your doctor writes 1-0-1 for five days, the reminders set themselves. Tick them off as you take them.",
+    tone: "rose",
   },
   {
     icon: FlaskConical,
     title: "Results in plain language",
     body: "Lab values outside the usual range are flagged clearly — and never interpreted for you, because that is your doctor's job.",
+    tone: "violet",
   },
   {
     icon: Users,
     title: "Your whole family",
     body: "Switch between your own record, your child's and your parents'. Give a sibling view-only access without handing over your password.",
+    tone: "sky",
   },
   {
     icon: QrCode,
     title: "An emergency card that works when you cannot",
     body: "A QR code a first responder can scan for your blood group, allergies and current medicines. Nothing else.",
+    tone: "amber",
   },
   {
     icon: Bell,
     title: "Nothing lost, nothing spammed",
     body: "Reminders arrive as notifications with quiet hours you set. Turning one off never deletes the notice.",
+    tone: "emerald",
   },
 ];
 
-const PROVIDER_FEATURES = [
+const PROVIDER_FEATURES: Array<{
+  icon: typeof Activity;
+  title: string;
+  body: string;
+  tone: Tone;
+}> = [
   {
     icon: Stethoscope,
     title: "Clinic",
     body: "Day list, check-in, consultation notes, and a prescription that prints on your letterhead — and lands in the patient's phone.",
+    tone: "teal",
   },
   {
     icon: BedDouble,
     title: "Hospital",
     body: "Departments, admissions, bed occupancy, operation notes and a discharge summary the patient can actually read.",
+    tone: "violet",
   },
   {
     icon: FlaskConical,
     title: "Diagnostic centre",
     body: "Catalogue, bookings, sample tracking, and results that stay invisible to the patient until someone signs them off.",
+    tone: "sky",
   },
   {
     icon: ScrollText,
     title: "Pharmacy",
     body: "Stock by batch with expiry alerts, prescription verification before dispensing, and orders from placed to delivered.",
+    tone: "emerald",
   },
 ];
 
-const STEPS = [
+const STEPS: Array<{ step: string; title: string; body: string; tone: Tone }> = [
   {
     step: "1",
     title: "Create your account",
     body: "Pick your own username and password. Name, mobile and address — no email needed, because we never send one.",
+    tone: "teal",
   },
   {
     step: "2",
     title: "Pay however you like",
     body: "UPI, QR or a bank transfer. Tell us the reference; a person checks it against the statement and switches your account on.",
+    tone: "amber",
   },
   {
     step: "3",
     title: "Start filling your locker",
     body: "Add what you have, and let your clinic, lab and pharmacy add the rest as you use them.",
+    tone: "violet",
   },
 ];
 
@@ -117,7 +148,7 @@ export default async function LandingPage() {
   return (
     <>
       {/* --- hero ----------------------------------------------------------- */}
-      <section className="bg-hero-wash">
+      <section className="bg-mesh">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div className="max-w-xl">
@@ -175,19 +206,22 @@ export default async function LandingPage() {
                   </div>
 
                   <div className="mt-3 grid grid-cols-2 gap-3">
-                    {[
-                      { icon: Pill, label: "Medicines", tone: "bg-primary-subtle text-primary" },
-                      { icon: FlaskConical, label: "Reports", tone: "bg-info-subtle text-info" },
-                      { icon: Activity, label: "Timeline", tone: "bg-success-subtle text-success" },
-                      { icon: Users, label: "Family", tone: "bg-accent-subtle text-accent" },
-                    ].map((tile) => (
+                    {(
+                      [
+                        { icon: Pill, label: "Medicines", tone: "rose" },
+                        { icon: FlaskConical, label: "Reports", tone: "violet" },
+                        { icon: Activity, label: "Timeline", tone: "teal" },
+                        { icon: Users, label: "Family", tone: "sky" },
+                      ] as const
+                    ).map((tile) => (
                       <div
                         key={tile.label}
-                        className="rounded-consumer border border-border bg-surface p-3 shadow-sm"
+                        className={cn(
+                          "bg-hue-wash relative overflow-hidden rounded-consumer border border-border bg-surface p-3 shadow-sm",
+                          TONE_STYLES[tile.tone].gradientVars,
+                        )}
                       >
-                        <span
-                          className={`flex size-9 items-center justify-center rounded-xl ${tile.tone}`}
-                        >
+                        <span className="bg-hue-gradient flex size-9 items-center justify-center rounded-xl text-white shadow-sm">
                           <tile.icon aria-hidden className="size-4.5" />
                         </span>
                         <p className="mt-2 text-sm font-medium">{tile.label}</p>
@@ -226,15 +260,34 @@ export default async function LandingPage() {
             {PATIENT_FEATURES.map((feature) => (
               <div
                 key={feature.title}
-                className="rounded-consumer border border-border bg-background p-6 shadow-sm transition-shadow hover:shadow-md"
+                className={cn(
+                  "bg-hue-wash relative overflow-hidden rounded-consumer border border-border bg-background p-6 shadow-sm transition-shadow hover:shadow-md",
+                  TONE_STYLES[feature.tone].gradientVars,
+                )}
               >
-                <span className="flex size-11 items-center justify-center rounded-2xl bg-primary-subtle text-primary">
+                <span className="bg-hue-gradient flex size-11 items-center justify-center rounded-2xl text-white shadow-sm">
                   <feature.icon aria-hidden className="size-5" />
                 </span>
                 <h3 className="mt-4 font-medium">{feature.title}</h3>
                 <p className="mt-1.5 text-sm text-muted-foreground">{feature.body}</p>
               </div>
             ))}
+          </div>
+
+          {/* The one place on the site where a real photograph earns its weight:
+              who this is for, shown rather than described. */}
+          <div className="mt-14 grid items-center gap-8 lg:grid-cols-2">
+            <Photo slot="patients" aspect="aspect-[5/4]" />
+            <div>
+              <h3 className="text-2xl font-semibold tracking-tight">
+                Built for the person holding the plastic bag
+              </h3>
+              <p className="mt-3 text-muted-foreground">
+                The daughter who keeps her parents&apos; reports. The father who cannot remember
+                which tablet was stopped. HealthLocker is for whoever in the family ends up doing
+                this job — usually without being asked.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -248,8 +301,8 @@ export default async function LandingPage() {
 
           <div className="mt-12 grid gap-8 sm:grid-cols-3">
             {STEPS.map((step) => (
-              <div key={step.step}>
-                <span className="flex size-10 items-center justify-center rounded-full bg-brand-gradient text-sm font-semibold text-white">
+              <div key={step.step} className={TONE_STYLES[step.tone].gradientVars}>
+                <span className="bg-hue-gradient flex size-10 items-center justify-center rounded-full text-sm font-semibold text-white shadow-sm">
                   {step.step}
                 </span>
                 <h3 className="mt-4 font-medium">{step.title}</h3>
@@ -263,25 +316,34 @@ export default async function LandingPage() {
       {/* --- providers ------------------------------------------------------ */}
       <section id="providers" className="scroll-mt-20 border-t border-border bg-surface">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <div className="max-w-2xl">
-            <p className="text-sm font-medium text-primary">For clinics, hospitals, labs and pharmacies</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-              The other half of the record
-            </h2>
-            <p className="mt-4 text-muted-foreground">
-              A patient&apos;s locker fills itself when the people treating them are on the same
-              system. Each portal is scoped to your organisation — you see your patients, nobody
-              else&apos;s.
-            </p>
+          <div className="grid items-center gap-10 lg:grid-cols-[1.2fr_1fr]">
+            <div className="max-w-2xl">
+              <p className="text-sm font-medium text-primary">
+                For clinics, hospitals, labs and pharmacies
+              </p>
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+                The other half of the record
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                A patient&apos;s locker fills itself when the people treating them are on the same
+                system. Each portal is scoped to your organisation — you see your patients, nobody
+                else&apos;s.
+              </p>
+            </div>
+
+            <Photo slot="providers" aspect="aspect-[4/3]" />
           </div>
 
           <div className="mt-12 grid gap-6 sm:grid-cols-2">
             {PROVIDER_FEATURES.map((feature) => (
               <div
                 key={feature.title}
-                className="flex gap-4 rounded-console border border-border bg-background p-6 shadow-sm"
+                className={cn(
+                  "border-t-brand bg-hue-wash relative flex gap-4 overflow-hidden rounded-console border border-border bg-background p-6 shadow-sm",
+                  TONE_STYLES[feature.tone].gradientVars,
+                )}
               >
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-primary">
+                <span className="bg-hue-gradient flex size-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm">
                   <feature.icon aria-hidden className="size-5" />
                 </span>
                 <div>
@@ -326,30 +388,36 @@ export default async function LandingPage() {
             </div>
 
             <ul className="space-y-5">
-              {[
-                {
-                  icon: Lock,
-                  title: "Encrypted where it matters",
-                  body: "Identifiers like your ABHA number, policy numbers and bank details are encrypted in the database, not just in transit.",
-                },
-                {
-                  icon: ShieldCheck,
-                  title: "Every read is logged",
-                  body: "When a clinic opens your record it is written to an append-only audit trail, with who and when.",
-                },
-                {
-                  icon: KeyRound,
-                  title: "Nobody can become you",
-                  body: "An admin can reset your password to a temporary one — never set it. There is no way for staff to sign in as you.",
-                },
-                {
-                  icon: Smartphone,
-                  title: "Take it or delete it",
-                  body: "Download everything as a file whenever you like, withdraw a consent, or ask us to delete what the law allows.",
-                },
-              ].map((item) => (
-                <li key={item.title} className="flex gap-4">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success-subtle text-success">
+              {(
+                [
+                  {
+                    icon: Lock,
+                    title: "Encrypted where it matters",
+                    body: "Identifiers like your ABHA number, policy numbers and bank details are encrypted in the database, not just in transit.",
+                    tone: "emerald",
+                  },
+                  {
+                    icon: ShieldCheck,
+                    title: "Every read is logged",
+                    body: "When a clinic opens your record it is written to an append-only audit trail, with who and when.",
+                    tone: "sky",
+                  },
+                  {
+                    icon: KeyRound,
+                    title: "Nobody can become you",
+                    body: "An admin can reset your password to a temporary one — never set it. There is no way for staff to sign in as you.",
+                    tone: "violet",
+                  },
+                  {
+                    icon: Smartphone,
+                    title: "Take it or delete it",
+                    body: "Download everything as a file whenever you like, withdraw a consent, or ask us to delete what the law allows.",
+                    tone: "teal",
+                  },
+                ] as const
+              ).map((item) => (
+                <li key={item.title} className={cn("flex gap-4", TONE_STYLES[item.tone].gradientVars)}>
+                  <span className="bg-hue-gradient flex size-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm">
                     <item.icon aria-hidden className="size-5" />
                   </span>
                   <div>

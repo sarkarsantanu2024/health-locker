@@ -1,3 +1,4 @@
+import { CalendarDays } from "lucide-react";
 import Link from "next/link";
 
 import { requireTenantPermission } from "@/lib/auth/session";
@@ -8,6 +9,7 @@ import { AppointmentRow, BookAppointmentForm } from "@/modules/provider/ui/appoi
 import { cn } from "@/lib/utils";
 import { EmptyState, PageHeader } from "@/ui/page-header";
 import { Table, TableWrap, Tbody, Th, Thead, Tr } from "@/ui/table";
+import { toneFor } from "@/ui/tone";
 
 /**
  * The day list. Which day is in the URL (`?date=`), not in client state, so a
@@ -44,6 +46,8 @@ export async function ProviderAppointmentsPage({
     <>
       <PageHeader
         title="Appointments"
+        icon={CalendarDays}
+        tone={toneFor("appointment")}
         description={`${appointments.length} on ${formatDate(day)}`}
       />
 
@@ -83,6 +87,8 @@ export async function ProviderAppointmentsPage({
           <EmptyState
             title="Nothing booked for this day"
             description="Use the form below to add one."
+            art="calendar"
+            tone={toneFor("appointment")}
           />
         </div>
       ) : (

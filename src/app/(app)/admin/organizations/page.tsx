@@ -6,15 +6,20 @@ import { listOrganizations } from "@/modules/admin/admin.service";
 import { Badge } from "@/ui/badge";
 import { Card, CardContent } from "@/ui/card";
 import { EmptyState, PageHeader } from "@/ui/page-header";
+import { toneFor, type Tone } from "@/ui/tone";
 
 export const metadata: Metadata = { title: "Tenants" };
 export const dynamic = "force-dynamic";
 
-const TYPE_TONE: Record<string, "primary" | "info" | "success" | "warning" | "neutral"> = {
-  CLINIC: "primary",
-  HOSPITAL: "info",
-  DIAGNOSTIC_CENTRE: "success",
-  PHARMACY: "warning",
+/**
+ * One hue per kind of tenant, taken from the same table the portals use, so a
+ * pharmacy row here is the emerald that the pharmacy console is.
+ */
+const TYPE_TONE: Record<string, Tone> = {
+  CLINIC: toneFor("appointment"),
+  HOSPITAL: toneFor("admission"),
+  DIAGNOSTIC_CENTRE: "sky",
+  PHARMACY: toneFor("inventory"),
   PLATFORM: "neutral",
 };
 
@@ -26,18 +31,25 @@ export default async function OrganizationsPage() {
     <>
       <PageHeader
         title="Tenants"
+        icon={Building2}
+        tone={toneFor("department")}
         description="Clinics, hospitals, diagnostic centres and pharmacies on the platform."
       />
 
       {organizations.length === 0 ? (
-        <EmptyState title="No organizations yet" />
+        <EmptyState
+          title="No organizations yet"
+          description="Provision a clinic, hospital, diagnostic centre or pharmacy from Onboarding."
+          art="people"
+          tone={toneFor("department")}
+        />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {organizations.map((org) => {
             const subscription = org.subscriptions[0];
 
             return (
-              <Card key={org.id}>
+              <Card key={org.id} hue={TYPE_TONE[org.type] ?? "neutral"}>
                 <CardContent className="space-y-3 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">

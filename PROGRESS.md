@@ -714,3 +714,111 @@ and the registrar refuses to install one outside production.
    script cleans up in a `finally`, which does not run when the process is
    killed. It now sweeps `smoke.*` accounts at the *start* of every run rather
    than trusting the previous one to have tidied up.
+
+---
+
+## Colour, brand and the first APK (2026-07-21)
+
+Two requests in one session: **"give me a downloadable .apk to run on my Android
+phone"**, and **"design should be more colourful along with images along with
+logo — whole product design should be colourful, attractive, professional."**
+
+### The APK
+
+`android/app/build/outputs/apk/debug/app-debug.apk`, copied to `dist/` for
+handover. It is pinned to `https://health-locker-chi.vercel.app` — a wrapper
+around the deployed origin, which is the only thing this architecture can
+produce (see the Phase 17 note above).
+
+Three things had to be fixed before `assembleDebug` would run, none of them
+obvious from the error text:
+
+1. `android/local.properties` was absent, and the obvious way to write it is
+   wrong: a Java properties file treats `\` as an escape, so a Windows path
+   written `C:\Users\...` silently becomes `C:Users...` and Gradle reports
+   "The filename, directory name, or volume label syntax is incorrect" with no
+   mention of the file. Forward slashes.
+2. **Capacitor 8 compiles at Java 21** and this machine has JDK 17 — `invalid
+   source release: 21`. `android/build.gradle` now pins every subproject back to
+   17 in an `afterEvaluate` block rather than making a JDK 21 install a
+   prerequisite. The first attempt used `options.release`, which AGP rejects
+   outright because it breaks the Android bootclasspath; it has to be
+   `compileOptions.sourceCompatibility`.
+3. The launcher icons were still Capacitor's placeholder (open item 1 from Phase
+   17, now closed).
+
+### The mark
+
+One drawing, four renderings, listed in `docs/design-system.md` because they
+must be edited together: `src/ui/logo.tsx` (themed, CSS variables),
+`public/icon.svg`, `public/icon-maskable.svg`, and the Android adaptive icon in
+`android/app/src/main/res/drawable*/ic_launcher_*.xml` — which now also carries a
+`<monochrome>` layer, so Android 13 themed icons tint it with the wallpaper
+palette instead of falling back to a white square.
+
+The mipmap PNG fallbacks (API 24–25, Play listing) are generated from
+`public/icon.svg` by `pnpm android:icons`, so they cannot drift. That added
+`sharp` as a devDependency; it was already in the tree transitively.
+
+### The palette
+
+The product was one teal on white everywhere. It now has **six hues** — teal,
+violet, rose, amber, sky, emerald — each declared in both themes in
+`globals.css`, with the mapping from *kind of thing* to *hue* in `src/ui/tone.ts`
+and nowhere else.
+
+The argument for this is not decoration. A locker full of identical teal cards
+has to be read; one where a report is always violet and a medicine is always
+rose can be scanned — and a patient learns that vocabulary once, on the
+marketing site, and it still holds in the app, in the console and in a
+notification.
+
+Supporting pieces: `src/ui/illustration.tsx` (ten inline SVG spot drawings that
+take a tone and follow light/dark, so every empty state has artwork instead of a
+line of grey text that looks like a failed request), the `.bg-hue-gradient` /
+`.bg-hue-wash` / `.bg-mesh` / `.border-t-brand` utilities, and `Stat`/`StatHero`,
+`Card hue=`, `PageHeader icon=`, `EmptyState art=`.
+
+`src/ui/badge.tsx` was rebuilt on top of the same table; `success/warning/danger/
+info` had been a second, near-identical palette.
+
+**The semantic scale (`success`/`warning`/`danger`/`info`) is deliberately a
+separate axis and was not collapsed into the hues.** A row is `danger` because
+something is wrong with it, never because of what kind of row it is.
+
+### Rules that survived the repaint
+
+- No hex outside `globals.css`.
+- Every hue passes AA on `surface` and on its own `-subtle`, in both themes; the
+  `-bright` partners are gradient-and-illustration only and are never text.
+- Colour is never the only signal — every tinted chip, badge and row kept an
+  icon or a label. Filter chips carry their hue dot even when unselected, so the
+  legend is learnable.
+- One `StatHero` per screen; cards are tinted selectively. Colouring everything
+  flattens hierarchy exactly as thoroughly as colouring nothing.
+
+**Verified**: `pnpm typecheck`, `pnpm lint`, 137 unit tests (4 new, asserting the
+tone tables are total and do not drift), and `pnpm smoke` across every
+authenticated page and six roles.
+
+### Open items
+
+1. **No photography.** `src/modules/marketing/photo.tsx` defines the slots and
+   each renders a finished-looking illustrated stand-in; a licensed file in
+   `public/photos/` plus one line in `PHOTOS` swaps it in. Unlicensed stock on a
+   health product is a legal problem, not a design one, so none was invented.
+2. **The APK is debug-signed.** Play needs a release keystore, and the keystore
+   must not enter this repo — it is public.
+3. `android/build.gradle`'s Java 17 pin should be removed once the build
+   machines are on JDK 21.
+
+### Stale test accounts (found while verifying this work)
+
+`pnpm smoke` mints real users and deletes them in a `finally`, and the audit
+tests mint `audit.check.*` patients that nothing swept at all. Eleven strays had
+accumulated in the database — which is the same database the deployed site uses.
+`pnpm purge-test-accounts` now lists them, `--delete` removes them, and it
+refuses to touch anything with clinical data attached in case the prefix ever
+collides with a real account. **It does not delete audit rows**: `AuditLog.actor`
+is `onDelete: SetNull`, so the trail survives the account, which is the entire
+point of an append-only trail.

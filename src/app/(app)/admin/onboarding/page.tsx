@@ -9,6 +9,8 @@ import {
 } from "@/modules/admin/admin.service";
 import { Alert } from "@/ui/alert";
 import { EmptyState, PageHeader } from "@/ui/page-header";
+import { toneFor } from "@/ui/tone";
+import { ClipboardList } from "lucide-react";
 
 export const metadata: Metadata = { title: "Onboarding" };
 export const dynamic = "force-dynamic";
@@ -26,6 +28,8 @@ export default async function OnboardingPage() {
     <>
       <PageHeader
         title="Onboarding"
+        icon={ClipboardList}
+        tone={toneFor("patient")}
         description="Sign-ups and enquiries waiting on payment verification or an account."
       />
 
@@ -42,6 +46,8 @@ export default async function OnboardingPage() {
         <EmptyState
           title="Nothing waiting"
           description="New sign-ups and provider enquiries appear here."
+          art="people"
+          tone={toneFor("patient")}
         />
       ) : (
         <div className="space-y-3">

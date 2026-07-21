@@ -2,6 +2,9 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { Illustration } from "@/ui/illustration";
+import { LogoMark } from "@/ui/logo";
+
 /**
  * Unauthenticated shell.
  *
@@ -16,14 +19,11 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       {/* --- form side ----------------------------------------------------- */}
       <div className="flex min-h-dvh flex-col px-4 py-8 sm:px-8 lg:min-h-0">
         <div className="mx-auto flex w-full max-w-lg items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span
-              aria-hidden
-              className="flex size-9 items-center justify-center rounded-xl bg-brand-gradient text-sm font-bold text-white shadow-sm"
-            >
-              H
+          <Link href="/" className="press flex items-center gap-2.5 rounded-xl">
+            <LogoMark className="size-9 shrink-0 rounded-xl shadow-sm" />
+            <span className="text-base font-semibold tracking-tight">
+              Health<span className="text-primary">Locker</span>
             </span>
-            <span className="text-base font-semibold tracking-tight">HealthLocker</span>
           </Link>
 
           <Link
@@ -75,11 +75,19 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           </ul>
         </div>
 
-        {/* Decorative only, and empty, so it carries no meaning to announce. */}
+        {/* Decorative only, and empty, so they carry no meaning to announce. */}
         <div
           aria-hidden
           className="pointer-events-none absolute -bottom-32 -right-24 size-96 rounded-full bg-white/10 blur-3xl"
         />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-20 -top-24 size-80 rounded-full bg-white/10 blur-3xl"
+        />
+        {/* The mark, oversized and half off the panel — brand as texture. */}
+        <div aria-hidden className="pointer-events-none absolute -bottom-16 right-6 opacity-25">
+          <Illustration name="shield" tone="teal" className="h-64" />
+        </div>
       </aside>
     </div>
   );

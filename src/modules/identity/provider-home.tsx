@@ -1,10 +1,11 @@
-import { CalendarDays, FileText, Users } from "lucide-react";
+import { CalendarDays, LayoutDashboard, UserCog, Users } from "lucide-react";
 
 import { requireTenant } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/card";
 import { ComingInPhase, PageHeader } from "@/ui/page-header";
-import { Stat } from "@/ui/stat";
+import { Stat, StatHero } from "@/ui/stat";
+import { toneFor } from "@/ui/tone";
 
 /**
  * Shared dashboard for the four provider consoles. Each portal's own screens
@@ -49,16 +50,28 @@ export async function ProviderHome({
     <>
       <PageHeader
         title={title}
+        icon={LayoutDashboard}
+        tone="teal"
         description={org ? [org.name, org.city].filter(Boolean).join(" · ") : undefined}
       />
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <Stat label="Registered patients" value={patientCount} icon={Users} />
-        <Stat label="Today's appointments" value={todayAppointments} icon={CalendarDays} />
-        <Stat label="Active staff" value={staffCount} icon={FileText} />
+        <StatHero
+          label="Today's appointments"
+          value={todayAppointments}
+          icon={CalendarDays}
+          tone={toneFor("appointment")}
+        />
+        <Stat
+          label="Registered patients"
+          value={patientCount}
+          icon={Users}
+          tone={toneFor("patient")}
+        />
+        <Stat label="Active staff" value={staffCount} icon={UserCog} tone={toneFor("staff")} />
       </div>
 
-      <Card>
+      <Card hue="teal">
         <CardHeader>
           <CardTitle>Coming next</CardTitle>
           <CardDescription>{feature}</CardDescription>

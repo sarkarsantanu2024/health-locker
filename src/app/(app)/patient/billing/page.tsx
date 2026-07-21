@@ -1,14 +1,17 @@
+import { CreditCard, Receipt, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 import { prisma } from "@/lib/db";
 import { formatDate, humanizeEnum, money } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { getPatientContext } from "@/modules/patient/context";
 import { StatusBadge } from "@/modules/provider/ui/status";
 import { buttonVariants } from "@/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card";
 import { EmptyState, PageHeader } from "@/ui/page-header";
 import { Stat } from "@/ui/stat";
+import { TONE_STYLES, toneFor } from "@/ui/tone";
 
 import { AddExpenseForm } from "./expense-form";
 
@@ -80,10 +83,16 @@ export default async function PatientBillingPage() {
     .filter((invoice) => ["ISSUED", "OVERDUE"].includes(invoice.status))
     .reduce((sum, invoice) => sum + invoice.totalMinor, 0);
 
+  // Money is amber wherever it appears — an expense on the timeline, a bill here.
+  const tone = toneFor("expense");
+  const style = TONE_STYLES[tone];
+
   return (
     <>
       <PageHeader
         title="Billing"
+        icon={Wallet}
+        tone={tone}
         description={
           context.isActingForOther
             ? `${context.patientName}'s plan, bills and spending`
@@ -95,19 +104,25 @@ export default async function PatientBillingPage() {
         <Stat
           label="Outstanding"
           value={money(outstanding)}
-          tone={outstanding > 0 ? "warning" : "neutral"}
+          icon={Receipt}
+          tone={outstanding > 0 ? tone : "neutral"}
           hint={outstanding > 0 ? "Tap a bill below to pay" : "Nothing due"}
         />
         <Stat
           label="Spent this year"
           value={money(spendThisYear._sum.amountMinor ?? 0)}
+          icon={Wallet}
+          tone={tone}
           hint="Out of pocket, as recorded by you"
         />
       </div>
 
-      <Card tone="consumer" className="mb-6">
+      <Card tone="consumer" hue={toneFor("insurance")} className="mb-6">
         <CardHeader>
-          <CardTitle>Your plan</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard aria-hidden className={cn("size-4", TONE_STYLES[toneFor("insurance")].text)} />
+            Your plan
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {subscription ? (
@@ -136,6 +151,8 @@ export default async function PatientBillingPage() {
         <h2 className="mb-3 text-base font-semibold tracking-tight">Bills</h2>
         {invoices.length === 0 ? (
           <EmptyState
+            art="wallet"
+            tone={tone}
             title="No bills yet"
             description="Invoices from your clinic, hospital or diagnostic centre appear here."
           />
@@ -147,15 +164,29 @@ export default async function PatientBillingPage() {
               return (
                 <li
                   key={invoice.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-consumer border border-border bg-surface p-4"
+                  className={cn(
+                    "bg-hue-wash flex flex-wrap items-center justify-between gap-3 rounded-consumer border border-border bg-surface p-4",
+                    style.gradientVars,
+                  )}
                 >
-                  <div className="min-w-0">
-                    <p className="font-medium">{invoice.org?.name ?? "HealthLocker"}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {invoice.number}
-                      {invoice.issuedAt ? ` · ${formatDate(invoice.issuedAt)}` : ""}
-                      {invoice.dueAt ? ` · due ${formatDate(invoice.dueAt)}` : ""}
-                    </p>
+                  <div className="flex min-w-0 items-center gap-3.5">
+                    <span
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-2xl",
+                        style.chipSolid,
+                      )}
+                    >
+                      <Receipt aria-hidden className="size-5" />
+                      <span className="sr-only">Bill</span>
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-medium">{invoice.org?.name ?? "HealthLocker"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {invoice.number}
+                        {invoice.issuedAt ? ` · ${formatDate(invoice.issuedAt)}` : ""}
+                        {invoice.dueAt ? ` · due ${formatDate(invoice.dueAt)}` : ""}
+                      </p>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-3">
@@ -180,14 +211,30 @@ export default async function PatientBillingPage() {
 
         {expenses.length === 0 ? (
           <EmptyState
+            art="wallet"
+            tone={tone}
             title="Nothing recorded"
             description="Track what you spend at the chemist or on tests, so the yearly total is real."
           />
         ) : (
-          <ul className="divide-y divide-border rounded-consumer border border-border bg-surface">
+          <ul
+            className={cn(
+              "bg-hue-wash divide-y divide-border rounded-consumer border border-border bg-surface",
+              style.gradientVars,
+            )}
+          >
             {expenses.map((expense) => (
-              <li key={expense.id} className="flex items-center justify-between gap-3 p-4">
-                <div className="min-w-0">
+              <li key={expense.id} className="flex items-center gap-3.5 p-4">
+                <span
+                  className={cn(
+                    "flex size-10 shrink-0 items-center justify-center rounded-2xl",
+                    style.chipSolid,
+                  )}
+                >
+                  <Wallet aria-hidden className="size-5" />
+                  <span className="sr-only">Expense</span>
+                </span>
+                <div className="min-w-0 flex-1">
                   <p className="font-medium">{humanizeEnum(expense.category)}</p>
                   <p className="text-sm text-muted-foreground">
                     {[formatDate(expense.incurredAt), expense.vendor, expense.note]

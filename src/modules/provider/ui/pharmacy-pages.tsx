@@ -1,3 +1,4 @@
+import { Package, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 
 import { requireTenantPermission } from "@/lib/auth/session";
@@ -25,6 +26,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card";
 import { Input } from "@/ui/field";
 import { EmptyState, PageHeader } from "@/ui/page-header";
 import { Table, TableWrap, Tbody, Td, Th, Thead, Tr } from "@/ui/table";
+import { toneFor } from "@/ui/tone";
+
+const INVENTORY = toneFor("inventory");
+/* An order is a prescription being dispensed, so it carries the prescription hue. */
+const ORDER = toneFor("prescription");
 
 export async function InventoryPage({ query }: { query: string }) {
   const { orgId } = await requireTenantPermission("inventory:read");
@@ -40,6 +46,8 @@ export async function InventoryPage({ query }: { query: string }) {
     <>
       <PageHeader
         title="Inventory"
+        icon={Package}
+        tone={INVENTORY}
         description="Stock is held per batch, so expiry is always answerable."
       />
 
@@ -75,6 +83,8 @@ export async function InventoryPage({ query }: { query: string }) {
           <EmptyState
             title={query ? "Nothing matches" : "No products yet"}
             description="Add a product below, then add a batch of stock against it."
+            art={query ? "search" : "medicine"}
+            tone={INVENTORY}
           />
         </div>
       ) : (
@@ -142,7 +152,7 @@ export async function InventoryPage({ query }: { query: string }) {
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card hue={INVENTORY}>
           <CardHeader>
             <CardTitle>Add a product</CardTitle>
           </CardHeader>
@@ -151,7 +161,7 @@ export async function InventoryPage({ query }: { query: string }) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card hue={INVENTORY}>
           <CardHeader>
             <CardTitle>Add stock</CardTitle>
           </CardHeader>
@@ -178,11 +188,21 @@ export async function OrdersPage() {
 
   return (
     <>
-      <PageHeader title="Orders" description="Verify, pack, dispatch and deliver." />
+      <PageHeader
+        title="Orders"
+        icon={ShoppingCart}
+        tone={ORDER}
+        description="Verify, pack, dispatch and deliver."
+      />
 
       {orders.length === 0 ? (
         <div className="mb-6">
-          <EmptyState title="No orders yet" />
+          <EmptyState
+            title="No orders yet"
+            description="Start one below, against a prescription or as a counter sale."
+            art="medicine"
+            tone={ORDER}
+          />
         </div>
       ) : (
         <TableWrap className="mb-6">
@@ -270,6 +290,8 @@ export async function OrderDetailPage({ orderId }: { orderId: string }) {
     <>
       <PageHeader
         title={`Order ${order.id.slice(-8)}`}
+        icon={ShoppingCart}
+        tone={ORDER}
         description={`${order.patient?.fullName ?? "Walk-in"} · ${money(order.totalMinor)}`}
         action={<StatusBadge value={order.status} />}
       />

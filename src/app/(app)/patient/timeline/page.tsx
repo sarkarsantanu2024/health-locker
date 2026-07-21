@@ -1,30 +1,20 @@
-import { Download, Search } from "lucide-react";
+import { Activity, Download, Search } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
 import { getPatientContext } from "@/modules/patient/context";
 import { getTimeline, groupByDay, TIMELINE_KINDS, type TimelineKind } from "@/modules/patient/timeline.service";
+import { KIND_LABEL, KindChip, kindTone } from "@/modules/patient/ui/record-kind";
 import { buttonVariants } from "@/ui/button";
 import { Badge } from "@/ui/badge";
 import { Card, CardContent } from "@/ui/card";
 import { Input } from "@/ui/field";
 import { EmptyState, PageHeader } from "@/ui/page-header";
+import { TONE_STYLES } from "@/ui/tone";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Timeline" };
 export const dynamic = "force-dynamic";
-
-const KIND_LABEL: Record<TimelineKind, string> = {
-  PRESCRIPTION: "Prescriptions",
-  REPORT: "Reports",
-  VACCINATION: "Vaccinations",
-  ENCOUNTER: "Visits",
-  VITAL: "Vitals",
-  CONDITION: "Conditions",
-  ALLERGY: "Allergies",
-  EXPENSE: "Expenses",
-  DOCUMENT: "Documents",
-};
 
 function formatDay(iso: string): string {
   const date = new Date(`${iso}T00:00:00Z`);
@@ -41,6 +31,12 @@ function formatDay(iso: string): string {
   }).format(date);
 }
 
+/**
+ * The timeline is where the palette earns its keep: nine kinds of record in one
+ * feed. Each row opens with its kind's chip — hue plus icon plus (for a screen
+ * reader) the word — and the filter chips are painted in the same hues, so
+ * ticking "Reports" and then scanning for violet is one gesture.
+ */
 export default async function TimelinePage({
   searchParams,
 }: {
@@ -65,6 +61,8 @@ export default async function TimelinePage({
     <>
       <PageHeader
         title="Health timeline"
+        icon={Activity}
+        tone="sky"
         description={
           context.isActingForOther
             ? `Everything recorded for ${context.patientName}, newest first.`
@@ -104,13 +102,17 @@ export default async function TimelinePage({
           <div className="flex flex-wrap gap-2">
             {TIMELINE_KINDS.map((kind) => {
               const active = selected.includes(kind);
+              const style = TONE_STYLES[kindTone(kind)];
+
               return (
                 <label
                   key={kind}
                   className={cn(
-                    "cursor-pointer rounded-full border px-3 py-1.5 text-sm transition-colors",
+                    // A tinted dot marks the hue even when the chip is off, so
+                    // the legend is learnable before anything is selected.
+                    "flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-3.5 text-sm transition-colors",
                     active
-                      ? "border-primary bg-primary-subtle font-medium text-primary"
+                      ? cn("font-medium", style.chipSolid, style.border)
                       : "border-border bg-surface text-muted-foreground hover:bg-muted",
                   )}
                 >
@@ -120,6 +122,13 @@ export default async function TimelinePage({
                     value={kind}
                     defaultChecked={active}
                     className="sr-only"
+                  />
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "size-2.5 rounded-full",
+                      active ? "bg-current" : style.chip,
+                    )}
                   />
                   {KIND_LABEL[kind]}
                 </label>
@@ -142,6 +151,8 @@ export default async function TimelinePage({
 
       {groups.length === 0 ? (
         <EmptyState
+          art={hasFilter ? "search" : "records"}
+          tone="sky"
           title={hasFilter ? "Nothing matches those filters" : "Your timeline is empty"}
           description={
             hasFilter
@@ -167,7 +178,9 @@ export default async function TimelinePage({
               <Card tone="consumer">
                 <CardContent className="divide-y divide-border p-0">
                   {group.entries.map((entry) => (
-                    <article key={entry.id} className="flex items-start gap-3 p-4">
+                    <article key={entry.id} className="flex items-start gap-3.5 p-4">
+                      <KindChip kind={entry.kind} />
+
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-medium">{entry.title}</h3>
@@ -179,9 +192,12 @@ export default async function TimelinePage({
                           {entry.needsReview ? <Badge tone="info">Unconfirmed</Badge> : null}
                         </div>
                         <p className="mt-0.5 text-sm text-muted-foreground">
-                          {[KIND_LABEL[entry.kind], entry.detail, entry.source]
-                            .filter(Boolean)
-                            .join(" · ")}
+                          <span className={cn("font-medium", TONE_STYLES[kindTone(entry.kind)].text)}>
+                            {KIND_LABEL[entry.kind]}
+                          </span>
+                          {[entry.detail, entry.source].filter(Boolean).length
+                            ? ` · ${[entry.detail, entry.source].filter(Boolean).join(" · ")}`
+                            : ""}
                         </p>
                       </div>
                     </article>

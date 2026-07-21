@@ -24,6 +24,29 @@ allprojects {
     }
 }
 
+/*
+ * Capacitor 8 compiles its own Android module at Java 21, which fails outright
+ * ("invalid source release: 21") on the JDK 17 toolchains that ship with
+ * Android Studio and with Microsoft Build of OpenJDK. Nothing in Capacitor's
+ * sources actually uses a post-17 language feature, so we pin every module —
+ * ours and the plugins' — back to 17 rather than making a JDK 21 install a
+ * prerequisite for building the APK.
+ *
+ * Remove this block once the build machines are on JDK 21.
+ */
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }

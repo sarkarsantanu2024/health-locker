@@ -1,4 +1,4 @@
-import { Settings2 } from "lucide-react";
+import { Bell, Settings2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -20,6 +20,8 @@ export default async function NotificationsPage() {
     <>
       <PageHeader
         title="Notifications"
+        icon={Bell}
+        tone="rose"
         description="Reminders and alerts. These are kept even when you have push turned off."
         action={
           <Link

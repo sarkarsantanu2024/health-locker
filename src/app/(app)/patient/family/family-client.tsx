@@ -4,6 +4,7 @@ import { UserPlus } from "lucide-react";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { cn } from "@/lib/utils";
 import {
   addFamilyMemberAction,
   removeFamilyMemberAction,
@@ -16,8 +17,35 @@ import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/ui/card";
 import { Field, Input, Select } from "@/ui/field";
+import { EmptyState } from "@/ui/page-header";
+import { TONE_STYLES, toneFor, toneFromString } from "@/ui/tone";
 
 const initial: PatientActionState = { ok: false };
+
+/** Violet is family, here and on the home screen and in the tab bar. */
+const FAMILY_TONE = toneFor("family");
+const family = TONE_STYLES[FAMILY_TONE];
+
+/**
+ * An initial in a coloured disc. The hue is derived from the name, so a person
+ * keeps the same colour every time you see them — it means nothing clinically,
+ * which is exactly why it is allowed to be arbitrary.
+ */
+function Avatar({ name }: { name: string }) {
+  const style = TONE_STYLES[toneFromString(name)];
+
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold",
+        style.chipSolid,
+      )}
+    >
+      {name.trim().charAt(0).toUpperCase() || "?"}
+    </span>
+  );
+}
 
 export interface FamilyMemberView {
   linkId: string;
@@ -61,7 +89,7 @@ export function FamilyClient({
       {error ? <Alert tone="danger">{error}</Alert> : null}
       {message ? <Alert tone="success">{message}</Alert> : null}
 
-      <Card tone="consumer">
+      <Card tone="consumer" hue={FAMILY_TONE}>
         <CardHeader>
           <CardTitle>Whose records am I viewing?</CardTitle>
           <CardDescription>
@@ -74,14 +102,16 @@ export function FamilyClient({
             <button
               type="submit"
               aria-current={!isActingForOther ? "true" : undefined}
-              className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition-colors ${
+              className={cn(
+                "press flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors",
                 !isActingForOther
-                  ? "border-primary bg-primary-subtle"
-                  : "border-border hover:bg-muted"
-              }`}
+                  ? cn(family.border, family.chip)
+                  : "border-border hover:bg-muted",
+              )}
             >
-              <span>
-                <span className="block font-medium">{ownName}</span>
+              <Avatar name={ownName} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{ownName}</span>
                 <span className="block text-sm text-muted-foreground">You</span>
               </span>
               {!isActingForOther ? <Badge tone="primary">Viewing</Badge> : null}
@@ -94,11 +124,15 @@ export function FamilyClient({
               <button
                 type="submit"
                 aria-current={member.isActive ? "true" : undefined}
-                className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition-colors ${
-                  member.isActive ? "border-primary bg-primary-subtle" : "border-border hover:bg-muted"
-                }`}
+                className={cn(
+                  "press flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors",
+                  member.isActive
+                    ? cn(family.border, family.chip)
+                    : "border-border hover:bg-muted",
+                )}
               >
-                <span className="min-w-0">
+                <Avatar name={member.fullName} />
+                <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{member.fullName}</span>
                   <span className="block text-sm text-muted-foreground">
                     {member.relationship.toLowerCase()}
@@ -115,7 +149,7 @@ export function FamilyClient({
         </CardContent>
       </Card>
 
-      <Card tone="consumer">
+      <Card tone="consumer" hue={FAMILY_TONE}>
         <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
           <div>
             <CardTitle>Family members</CardTitle>
@@ -206,12 +240,18 @@ export function FamilyClient({
           ) : null}
 
           {members.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No family members yet.</p>
+            <EmptyState
+              art="people"
+              tone={FAMILY_TONE}
+              title="No family members yet"
+              description="Add a child or a parent who does not have their own account, and you can keep their records here too."
+            />
           ) : (
             <ul className="divide-y divide-border">
               {members.map((member) => (
-                <li key={member.linkId} className="flex items-center justify-between gap-4 py-3">
-                  <div className="min-w-0">
+                <li key={member.linkId} className="flex items-center gap-3 py-3">
+                  <Avatar name={member.fullName} />
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{member.fullName}</p>
                     <p className="text-sm text-muted-foreground">
                       {member.relationship.toLowerCase()} · {member.accessLevel.toLowerCase()}

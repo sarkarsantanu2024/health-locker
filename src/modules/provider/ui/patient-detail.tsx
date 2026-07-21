@@ -1,4 +1,4 @@
-import { CalendarPlus, FileText, Receipt, Stethoscope } from "lucide-react";
+import { CalendarPlus, FileText, Receipt, Stethoscope, UserRound } from "lucide-react";
 import Link from "next/link";
 
 import { requireTenantPermission, hasPermission } from "@/lib/auth/session";
@@ -17,6 +17,7 @@ import { Badge } from "@/ui/badge";
 import { buttonVariants } from "@/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card";
 import { EmptyState, PageHeader } from "@/ui/page-header";
+import { toneFor } from "@/ui/tone";
 
 /**
  * A patient as a provider sees them.
@@ -47,6 +48,8 @@ export async function ProviderPatientDetail({
     <>
       <PageHeader
         title={patient.fullName}
+        icon={UserRound}
+        tone={toneFor("patient")}
         description={[
           age !== null ? `${age} years` : null,
           humanizeEnum(patient.gender),
@@ -92,7 +95,7 @@ export async function ProviderPatientDetail({
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {/* --- safety first ------------------------------------------------ */}
-          <Card>
+          <Card hue={toneFor("alert")}>
             <CardHeader>
               <CardTitle>Allergies</CardTitle>
             </CardHeader>
@@ -151,7 +154,12 @@ export async function ProviderPatientDetail({
             </CardHeader>
             <CardContent>
               {summary.encounters.length === 0 ? (
-                <EmptyState title="No visits recorded here yet" />
+                <EmptyState
+                  title="No visits recorded here yet"
+                  description="Visits recorded at this organisation appear here, newest first."
+                  art="records"
+                  tone={toneFor("prescription")}
+                />
               ) : (
                 <ul className="divide-y divide-border">
                   {summary.encounters.map((encounter) => (
@@ -179,7 +187,7 @@ export async function ProviderPatientDetail({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card hue={toneFor("report")}>
             <CardHeader>
               <CardTitle>Reports</CardTitle>
             </CardHeader>
@@ -263,7 +271,7 @@ export async function ProviderPatientDetail({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card hue={toneFor("prescription")}>
             <CardHeader>
               <CardTitle>Prescriptions</CardTitle>
             </CardHeader>
@@ -297,7 +305,7 @@ export async function ProviderPatientDetail({
           </Card>
 
           {summary.invoices.length > 0 ? (
-            <Card>
+            <Card hue={toneFor("billing")}>
               <CardHeader>
                 <CardTitle>Invoices</CardTitle>
               </CardHeader>
@@ -323,7 +331,7 @@ export async function ProviderPatientDetail({
           ) : null}
 
           {canManageRecords ? (
-            <Card>
+            <Card hue={toneFor("vaccination")}>
               <CardHeader>
                 <CardTitle>Vaccinations</CardTitle>
               </CardHeader>
