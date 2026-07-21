@@ -679,3 +679,38 @@ shows a blank screen on a real phone.
 3. **The provider consoles were softened, not redesigned.** They are deliberately
    denser than the patient app; if that is still too close to an admin panel, the
    next step is a different information architecture rather than more styling.
+
+---
+
+## Post-phase fixes (2026-07-21, same day)
+
+**The service worker was breaking development.** It caches `/_next/static`
+cache-first, which is correct in production — those URLs are content-hashed, so
+a new build is a new URL — but Turbopack's dev chunks live at *stable* paths
+whose contents change on every edit. The browser was therefore pinned to the
+first JavaScript it ever loaded, which produced two errors that look unrelated
+and are the same thing:
+
+- a hydration mismatch, because stale client markup met freshly rendered HTML
+  (the reported diff showed the pre-redesign `w-60` sidebar against the current
+  `w-64` one);
+- "An unexpected response was received from the server" on sign-out, because a
+  stale bundle posts a Server Action id the running server has never heard of.
+
+It was also self-sustaining: the cached bundle was the very code that would have
+fixed it. So the escape hatch had to live **inside the worker** — `sw.js` now
+retires itself on a localhost origin, clearing every cache and unregistering,
+and the registrar refuses to install one outside production.
+
+**Two demo-data problems, both mine:**
+
+1. `pnpm db:demo` generated a *fresh random* password on every run, so re-seeding
+   silently invalidated whatever was written down — and it surfaces as
+   "Incorrect username or password", which reads as a broken login rather than a
+   rotated credential. The default is now the stable, documented
+   `healthlocker2026`; `DEMO_PASSWORD` still overrides it, and `main()` still
+   refuses to run at all under `NODE_ENV=production`.
+2. A **leftover smoke-test `SUPER_ADMIN`** was found in the database. The smoke
+   script cleans up in a `finally`, which does not run when the process is
+   killed. It now sweeps `smoke.*` accounts at the *start* of every run rather
+   than trusting the previous one to have tidied up.

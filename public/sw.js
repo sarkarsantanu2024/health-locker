@@ -7,11 +7,31 @@
  * only when the network genuinely fails.
  */
 
-const CACHE = "healthlocker-shell-v1";
+const CACHE = "healthlocker-shell-v2";
 const OFFLINE_URL = "/offline";
 const PRECACHE = [OFFLINE_URL, "/icon.svg", "/icon-maskable.svg", "/manifest.webmanifest"];
 
+/*
+ * A service worker has no business on a development origin.
+ *
+ * Turbopack's dev chunks live at stable, unhashed URLs whose contents change on
+ * every edit, so caching them pins the browser to the first JavaScript it ever
+ * saw. That then hydrates against freshly rendered HTML and fails, and posts
+ * Server Action ids the running server has never heard of.
+ *
+ * This worker therefore retires itself on localhost. It matters that the check
+ * lives HERE and not only in the registration code: once a stale bundle is being
+ * served, that bundle is the very code that would have fixed the problem, so the
+ * escape hatch has to be inside the worker.
+ */
+const IS_DEV_ORIGIN = ["localhost", "127.0.0.1", "[::1]"].includes(self.location.hostname);
+
 self.addEventListener("install", (event) => {
+  if (IS_DEV_ORIGIN) {
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
+
   event.waitUntil(
     caches
       .open(CACHE)
@@ -22,6 +42,20 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
+  if (IS_DEV_ORIGIN) {
+    // Drop every cache, hand the pages back to the network, and unregister. The
+    // next reload is served entirely by the dev server.
+    event.waitUntil(
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+        .then(() => self.registration.unregister())
+        .then(() => self.clients.matchAll({ type: "window" }))
+        .then((clients) => clients.forEach((client) => client.navigate(client.url))),
+    );
+    return;
+  }
+
   event.waitUntil(
     caches
       .keys()
@@ -32,6 +66,9 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
+
+  // On a dev origin this worker is on its way out; touch nothing meanwhile.
+  if (IS_DEV_ORIGIN) return;
 
   if (request.method !== "GET") return;
 
