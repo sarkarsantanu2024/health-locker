@@ -79,6 +79,20 @@ const ORG_BY_ROLE: Partial<Record<Role, string>> = {
   PHARMACY_ADMIN: "org-demo-pharmacy",
 };
 
+/**
+ * Reachable pages that are NOT in the sidebar — settings, sub-forms and detail
+ * screens. The nav walk cannot find these, and they are exactly where a
+ * serialisation bug hides longest because nobody clicks them during a demo.
+ */
+const EXTRA_PATHS: Partial<Record<Role, string[]>> = {
+  SUPER_ADMIN: ["/notifications/settings", "/account/privacy"],
+  PATIENT: ["/notifications/settings", "/account/privacy"],
+  CLINIC_ADMIN: ["/clinic/patients/new", "/clinic/encounters/new", "/clinic/billing/new"],
+  HOSPITAL_ADMIN: ["/hospital/patients/new", "/hospital/billing/new"],
+  DIAGNOSTIC_ADMIN: ["/diagnostic/patients/new", "/diagnostic/reports/new"],
+  PHARMACY_ADMIN: ["/pharmacy/patients/new", "/pharmacy/billing/new"],
+};
+
 /** Next embeds these into the HTML when a render throws or logs an error. */
 const RENDER_ERROR =
   /Only plain objects can be passed|__next_error__|Unhandled Runtime Error|Server Error|Application error/i;
@@ -128,7 +142,7 @@ async function main(): Promise<void> {
 
   try {
     for (const role of ROLES_UNDER_TEST) {
-      const paths = NAV_BY_ROLE[role].map((item) => item.href);
+      const paths = [...NAV_BY_ROLE[role].map((item) => item.href), ...(EXTRA_PATHS[role] ?? [])];
 
       const user = await prisma.user.create({
         data: {
@@ -158,7 +172,7 @@ async function main(): Promise<void> {
         if (!ok) failures += 1;
 
         process.stdout.write(
-          `${ok ? "PASS" : "FAIL"}  ${role.padEnd(18)} ${path.padEnd(14)} ${response.status}` +
+          `${ok ? "PASS" : "FAIL"}  ${role.padEnd(18)} ${path.padEnd(32)} ${response.status}` +
             (hasRenderError ? "   <- render error in HTML" : "") +
             "\n",
         );

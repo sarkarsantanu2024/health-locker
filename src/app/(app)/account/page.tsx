@@ -39,9 +39,20 @@ export default async function AccountPage() {
               </div>
             </dl>
 
-            <Link href="/change-password" className={buttonVariants({ variant: "secondary", size: "sm" })}>
-              Change password
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/change-password"
+                className={buttonVariants({ variant: "secondary", size: "sm" })}
+              >
+                Change password
+              </Link>
+              <Link
+                href="/account/privacy"
+                className={buttonVariants({ variant: "secondary", size: "sm" })}
+              >
+                Privacy and data
+              </Link>
+            </div>
           </CardContent>
         </Card>
 

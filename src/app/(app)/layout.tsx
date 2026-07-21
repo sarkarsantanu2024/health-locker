@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { logoutAction } from "@/modules/identity/actions";
 import { ConsoleShell } from "@/modules/identity/console-shell";
 import { ConsumerShell } from "@/modules/identity/consumer-shell";
+import { NotificationBell } from "@/modules/notify/notification-bell";
 import { CONSUMER_ROLES } from "@/shared/enums";
 import { Button } from "@/ui/button";
 
@@ -47,6 +48,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         permissions={permissions}
         displayName={session.displayName}
         signOut={<SignOutButton />}
+        bell={<NotificationBell userId={session.id} />}
       >
         {children}
       </ConsumerShell>
@@ -67,6 +69,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       orgName={org?.name ?? null}
       displayName={session.displayName}
       signOut={<SignOutButton full />}
+      bell={<NotificationBell userId={session.id} />}
     >
       {children}
     </ConsoleShell>

@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { getSession, requireAuthenticated, requirePermission } from "@/lib/auth/session";
+import {
+  getSession,
+  isPlatformRole,
+  requireAuthenticated,
+  requirePermission,
+} from "@/lib/auth/session";
 import { buildTotpUri } from "@/lib/auth/totp";
 import {
   beginTotpEnrolment,
@@ -16,8 +21,11 @@ import {
 } from "@/modules/identity/auth.service";
 import {
   createUser,
+  platformScope,
   resetPassword,
   setUserActive,
+  tenantScope,
+  type ActorScope,
   type ProvisionedCredentials,
 } from "@/modules/identity/provisioning.service";
 import { registerConsumer } from "@/modules/identity/signup.service";
@@ -38,6 +46,18 @@ import {
  * Server actions for the identity module. Each one: validate with zod → guard →
  * call the service. No business logic lives here.
  */
+
+/**
+ * Turns a session into a provisioning scope.
+ *
+ * Provider org admins hold the same `user:*` permissions as platform staff, so
+ * the permission check alone is not enough — it says they may manage users, not
+ * *which* users. A caller with an `orgId` is confined to it; only a platform
+ * role acts across tenants.
+ */
+function actorScope(actor: { id: string; role: Role; orgId: string | null }): ActorScope {
+  return isPlatformRole(actor.role) ? platformScope(actor.id) : tenantScope(actor.id, actor.orgId);
+}
 
 export interface ActionState {
   ok: boolean;
@@ -255,7 +275,7 @@ export async function createUserAction(
 
   try {
     const actor = await requirePermission("user:create");
-    const credentials = await createUser(parsed.data, actor.id);
+    const credentials = await createUser(parsed.data, actorScope(actor));
     // Returned to the caller so the UI can show a copy-once panel. This is the
     // only moment the plaintext exists outside the admin's clipboard.
     return { ok: true, credentials };
@@ -279,7 +299,11 @@ export async function resetPasswordAction(
 
   try {
     const actor = await requirePermission("user:reset-password");
-    const credentials = await resetPassword(parsed.data.userId, actor.id, parsed.data.reason || undefined);
+    const credentials = await resetPassword(
+      parsed.data.userId,
+      actorScope(actor),
+      parsed.data.reason || undefined,
+    );
     return { ok: true, credentials };
   } catch (error) {
     return toActionState(error);
@@ -302,9 +326,15 @@ export async function setUserActiveAction(
 
   try {
     const actor = await requirePermission("user:suspend");
-    await setUserActive(parsed.data.userId, parsed.data.active, actor.id, parsed.data.reason || undefined);
+    await setUserActive(
+      parsed.data.userId,
+      parsed.data.active,
+      actorScope(actor),
+      parsed.data.reason || undefined,
+    );
 
     revalidatePath("/admin/users");
+    if (actor.orgId) revalidatePath(`${PORTAL_BY_ROLE[actor.role]}/users`);
     return {
       ok: true,
       message: parsed.data.active ? "Account activated." : "Account suspended and signed out.",

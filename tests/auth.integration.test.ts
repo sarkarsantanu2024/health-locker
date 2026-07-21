@@ -36,7 +36,7 @@ const { getSession, requirePermission, requireTenant, requireUser, assertSameTen
   "@/lib/auth/session"
 );
 const { changeOwnPassword, login, logout } = await import("@/modules/identity/auth.service");
-const { createUser, resetPassword, setUserActive } = await import(
+const { createUser, platformScope, resetPassword, setUserActive } = await import(
   "@/modules/identity/provisioning.service"
 );
 const { registerConsumer } = await import("@/modules/identity/signup.service");
@@ -99,15 +99,15 @@ beforeAll(async () => {
 
   patient = await createUser(
     { displayName: `Spec Patient ${SUFFIX}`, role: "PATIENT", username: `patient.${SUFFIX}` },
-    adminId,
+    platformScope(adminId),
   );
   staffA = await createUser(
     { displayName: `Spec Staff A ${SUFFIX}`, role: "CLINIC_STAFF", orgId: ORG_A, username: `staffa.${SUFFIX}` },
-    adminId,
+    platformScope(adminId),
   );
   staffB = await createUser(
     { displayName: `Spec Staff B ${SUFFIX}`, role: "CLINIC_STAFF", orgId: ORG_B, username: `staffb.${SUFFIX}` },
-    adminId,
+    platformScope(adminId),
   );
 }, 60_000);
 
@@ -156,7 +156,7 @@ describe("acceptance: only activated accounts can sign in", () => {
     });
     expect(request?.status).toBe("PENDING");
 
-    await setUserActive(signup.userId, true, adminId, "payment verified");
+    await setUserActive(signup.userId, true, platformScope(adminId), "payment verified");
 
     const result = await login(
       { username: `selfreg.${SUFFIX}`, password: "a-self-chosen-passphrase" },
@@ -192,21 +192,26 @@ describe("acceptance: only activated accounts can sign in", () => {
   });
 
   it("refuses a suspended account", async () => {
-    await setUserActive(staffB.userId, false, adminId, "spec");
+    await setUserActive(staffB.userId, false, platformScope(adminId), "spec");
 
     await expect(
       login({ username: staffB.username, password: staffB.temporaryPassword }, "127.0.0.1"),
     ).rejects.toThrow(/Incorrect username or password/);
 
-    await setUserActive(staffB.userId, true, adminId, "spec restore");
+    await setUserActive(staffB.userId, true, platformScope(adminId), "spec restore");
   });
 
   it("refuses an unknown username with the same message as a wrong password", async () => {
-    const unknown = login({ username: "nobody.here", password: "whatever" }, "127.0.0.1");
-    const wrong = login({ username: patient.username, password: "wrong-password" }, "127.0.0.1");
+    // Awaited one at a time. Starting both up front leaves the second promise
+    // rejected-but-unobserved for a tick, which Vitest reports as an unhandled
+    // rejection and attributes to whichever test happens to be running.
+    await expect(
+      login({ username: "nobody.here", password: "whatever" }, "127.0.0.1"),
+    ).rejects.toThrow(/Incorrect username or password/);
 
-    await expect(unknown).rejects.toThrow(/Incorrect username or password/);
-    await expect(wrong).rejects.toThrow(/Incorrect username or password/);
+    await expect(
+      login({ username: patient.username, password: "wrong-password" }, "127.0.0.1"),
+    ).rejects.toThrow(/Incorrect username or password/);
   });
 });
 
@@ -291,7 +296,7 @@ describe("lockout", () => {
     ).rejects.toThrow(/temporarily locked/i);
 
     // An admin reset clears the lock.
-    const reissued = await resetPassword(staffB.userId, adminId, "spec unlock");
+    const reissued = await resetPassword(staffB.userId, platformScope(adminId), "spec unlock");
     staffB.temporaryPassword = reissued.temporaryPassword;
 
     resetMemoryLimiter();
@@ -386,19 +391,19 @@ describe("sessions", () => {
 describe("provisioning", () => {
   it("refuses a provider role without an organization", async () => {
     await expect(
-      createUser({ displayName: "No Org", role: "CLINIC_STAFF" }, adminId),
+      createUser({ displayName: "No Org", role: "CLINIC_STAFF" }, platformScope(adminId)),
     ).rejects.toThrow(/requires an organization/i);
   });
 
   it("refuses a patient attached to an organization", async () => {
     await expect(
-      createUser({ displayName: "Odd Patient", role: "PATIENT", orgId: ORG_A }, adminId),
+      createUser({ displayName: "Odd Patient", role: "PATIENT", orgId: ORG_A }, platformScope(adminId)),
     ).rejects.toThrow(/not attached to an organization/i);
   });
 
   it("refuses a role whose type does not match the organization", async () => {
     await expect(
-      createUser({ displayName: "Wrong Type", role: "PHARMACY_STAFF", orgId: ORG_A }, adminId),
+      createUser({ displayName: "Wrong Type", role: "PHARMACY_STAFF", orgId: ORG_A }, platformScope(adminId)),
     ).rejects.toThrow(/belongs to a PHARMACY/i);
   });
 
@@ -424,11 +429,11 @@ describe("provisioning", () => {
     });
 
     if (others === 0) {
-      await expect(setUserActive(adminId, false, adminId)).rejects.toThrow();
+      await expect(setUserActive(adminId, false, platformScope(adminId))).rejects.toThrow();
     } else {
       // Another Super Admin exists (the real root.admin), so self-suspension is
       // refused for the separate "cannot suspend yourself" reason.
-      await expect(setUserActive(adminId, false, adminId)).rejects.toThrow(/your own account/i);
+      await expect(setUserActive(adminId, false, platformScope(adminId))).rejects.toThrow(/your own account/i);
     }
   });
 });

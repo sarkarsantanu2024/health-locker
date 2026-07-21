@@ -72,3 +72,24 @@ jobs:
       - run: pnpm test:integration
 
       - run: pnpm build
+
+      # A route test that only checks "signed out → 307 /login" proves nothing
+      # about whether a page renders once you ARE signed in. `pnpm smoke` walks
+      # every nav destination for every role with a real session cookie, which is
+      # what catches a server→client serialisation bug before a human does.
+      - name: Render every authenticated page
+        env:
+          SMOKE_BASE: http://127.0.0.1:3000
+        run: |
+          pnpm db:demo --reset
+          pnpm start &
+          SERVER_PID=$!
+          # Poll rather than sleep: the boot time varies with runner load.
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:3000/api/v1/health > /dev/null && break
+            sleep 2
+          done
+          pnpm smoke
+          SMOKE_EXIT=$?
+          kill $SERVER_PID
+          exit $SMOKE_EXIT

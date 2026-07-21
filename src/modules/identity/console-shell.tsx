@@ -27,6 +27,8 @@ interface ConsoleShellProps {
   orgName: string | null;
   displayName: string;
   signOut: ReactNode;
+  /** Server-rendered so the unread count is fresh without a client poll. */
+  bell?: ReactNode;
   children: ReactNode;
 }
 
@@ -91,6 +93,7 @@ export function ConsoleShell({
   orgName,
   displayName,
   signOut,
+  bell,
   children,
 }: ConsoleShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -165,6 +168,7 @@ export function ConsoleShell({
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{orgName ?? portalLabel}</p>
           </div>
+          {bell}
         </header>
 
         <main id="main" className="mx-auto max-w-7xl p-4 sm:p-6">
