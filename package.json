@@ -4,9 +4,10 @@
   "private": true,
   "packageManager": "pnpm@11.15.1",
   "scripts": {
-    "dev": "next dev",
+    "predev": "tsx scripts/check-port.mts",
+    "dev": "next dev -p 3000",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "next start -p 3000",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
