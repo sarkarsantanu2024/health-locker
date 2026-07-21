@@ -2,7 +2,7 @@ import "../scripts/load-env";
 
 import { PrismaClient } from "@prisma/client";
 
-import { generateTemporaryPassword, hashPassword } from "@/lib/auth/password";
+import { hashPassword } from "@/lib/auth/password";
 
 /**
  * DEMO DATA — realistic content so every screen shows something in a client
@@ -20,6 +20,9 @@ const prisma = new PrismaClient();
 const reset = process.argv.includes("--reset");
 
 const DEMO_PASSWORD_NOTE = "Demo accounts all share one password so a demo is not derailed by typing.";
+
+/** Documented in the repo and in PROGRESS.md, so re-seeding never invalidates it. */
+const DEFAULT_DEMO_PASSWORD = "healthlocker2026";
 
 function daysAgo(days: number): Date {
   const date = new Date();
@@ -650,7 +653,19 @@ async function main(): Promise<void> {
 
   if (reset) await wipe();
 
-  const password = process.env.DEMO_PASSWORD || generateTemporaryPassword(12);
+  /*
+   * A STABLE default, not a random one.
+   *
+   * This used to generate a fresh password on every run, which meant re-seeding
+   * silently invalidated whatever anyone had written down — and the failure
+   * surfaces as "Incorrect username or password", which looks like a broken
+   * login rather than a rotated credential.
+   *
+   * A known password in the repo is fine precisely here: `main()` refuses to run
+   * at all with NODE_ENV=production, and these accounts only ever exist
+   * alongside fake patients. Set DEMO_PASSWORD to override for a shared demo.
+   */
+  const password = process.env.DEMO_PASSWORD || DEFAULT_DEMO_PASSWORD;
 
   await upsertDemoUsers(password);
   await clinicalHistory();

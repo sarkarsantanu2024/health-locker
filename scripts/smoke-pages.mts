@@ -141,8 +141,37 @@ async function checkPublicRoutes(): Promise<number> {
   return failures;
 }
 
+/**
+ * Deletes throwaway accounts left behind by a previous run.
+ *
+ * Cleanup normally happens in the `finally` below, but that does not run if the
+ * process is killed — and these are ACTIVE accounts, one of them a SUPER_ADMIN.
+ * A stray super-admin row surviving a Ctrl-C is not acceptable, so each run
+ * sweeps before it starts rather than trusting the last one to have tidied up.
+ */
+async function sweepPreviousRuns(): Promise<void> {
+  const stale = await prisma.user.findMany({
+    where: { username: { startsWith: "smoke." } },
+    select: { id: true },
+  });
+
+  if (stale.length === 0) return;
+
+  const ids = stale.map((user) => user.id);
+
+  await prisma.session.deleteMany({ where: { userId: { in: ids } } });
+  await prisma.patient.deleteMany({ where: { userId: { in: ids } } });
+  await prisma.auditLog.deleteMany({ where: { actorId: { in: ids } } });
+  await prisma.user.deleteMany({ where: { id: { in: ids } } });
+
+  process.stdout.write(`Removed ${ids.length} account(s) left by an interrupted run.\n`);
+}
+
 async function main(): Promise<void> {
   const createdIds: string[] = [];
+
+  await sweepPreviousRuns();
+
   let failures = await checkPublicRoutes();
 
   try {
