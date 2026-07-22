@@ -37,6 +37,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Local-only notes, never committed. Demo logins and other throwaway
+# credentials live in *.local.md so they are handy but stay out of a public repo.
+*.local.md
+/secrets/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
