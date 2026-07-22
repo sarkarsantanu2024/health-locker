@@ -28,7 +28,8 @@
   "crons": [
     {
       "path": "/api/jobs/reminders",
-      "schedule": "0,30 * * * *"
+      "//": "Hobby (free) tier allows a cron to run at most ONCE PER DAY. A sub-daily schedule here (this was '0,30 * * * *', every 30 min) makes EVERY deployment fail validation before it is even created -- silently, with nothing in the Deployments list -- which is how auto-deploy broke for a day. So this is the daily floor: it fires once, at 03:30 UTC (09:00 IST), catching anything the 30-minute cadence missed. The real 30-minute cadence comes from an external scheduler hitting this same route with the CRON_SECRET bearer (see docs/reminders-cron.md); the route accepts both callers. Restore the sub-daily schedule here only on Pro.",
+      "schedule": "30 3 * * *"
     }
   ]
 }
