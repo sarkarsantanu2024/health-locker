@@ -21,8 +21,30 @@ const reset = process.argv.includes("--reset");
 
 const DEMO_PASSWORD_NOTE = "Demo accounts all share one password so a demo is not derailed by typing.";
 
-/** Documented in the repo and in PROGRESS.md, so re-seeding never invalidates it. */
-const DEFAULT_DEMO_PASSWORD = "healthlocker2026";
+/**
+ * The shared demo password comes from `DEMO_PASSWORD` and nowhere else. The
+ * previous default was a literal in this public repository, which meant anyone
+ * who read the source could sign in to every demo account on any database this
+ * script had ever been run against. Keep the real value in an uncommitted
+ * `*.local.md` note (see .gitignore) and pass it explicitly:
+ *
+ *   DEMO_PASSWORD=... pnpm db:demo
+ *
+ * A stable value is still the right call — re-seeding with a fresh random one
+ * silently invalidated whatever was written down — it just must not live here.
+ */
+function demoPassword(): string {
+  const value = process.env.DEMO_PASSWORD?.trim();
+
+  if (!value || value.length < 12) {
+    throw new Error(
+      "Set DEMO_PASSWORD (12+ characters) before running pnpm db:demo. " +
+        "It is deliberately not defaulted: a password in the repository is public.",
+    );
+  }
+
+  return value;
+}
 
 function daysAgo(days: number): Date {
   const date = new Date();
@@ -661,11 +683,10 @@ async function main(): Promise<void> {
    * surfaces as "Incorrect username or password", which looks like a broken
    * login rather than a rotated credential.
    *
-   * A known password in the repo is fine precisely here: `main()` refuses to run
-   * at all with NODE_ENV=production, and these accounts only ever exist
-   * alongside fake patients. Set DEMO_PASSWORD to override for a shared demo.
+   * The password itself must come from the environment — see `demoPassword()`.
+   * `main()` still refuses to run at all with NODE_ENV=production.
    */
-  const password = process.env.DEMO_PASSWORD || DEFAULT_DEMO_PASSWORD;
+  const password = demoPassword();
 
   await upsertDemoUsers(password);
   await clinicalHistory();

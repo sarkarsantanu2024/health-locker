@@ -7,9 +7,11 @@ diagnostic centre, pharmacy) manage appointments, reports, billing and inventory
 
 Built to run on free tiers: **Vercel + Neon + Upstash + Cloudflare R2**.
 
-> **There is no public sign-up.** Accounts are provisioned by a Super Admin after
-> a manual payment is verified, and credentials are handed over out-of-band. The
-> system never sends email.
+> **No account is active until a human has verified a payment.** Patients can
+> register themselves at `/signup`, but the account stays `PENDING_ACTIVATION`
+> until a platform admin matches their UPI/bank payment against the statement.
+> Provider (clinic, hospital, lab, pharmacy) accounts are provisioned by platform
+> staff and the credentials handed over out-of-band. The system never sends email.
 
 ## Quick start
 

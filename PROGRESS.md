@@ -707,9 +707,11 @@ and the registrar refuses to install one outside production.
 1. `pnpm db:demo` generated a *fresh random* password on every run, so re-seeding
    silently invalidated whatever was written down — and it surfaces as
    "Incorrect username or password", which reads as a broken login rather than a
-   rotated credential. The default is now the stable, documented
-   `healthlocker2026`; `DEMO_PASSWORD` still overrides it, and `main()` still
-   refuses to run at all under `NODE_ENV=production`.
+   rotated credential. The default became a stable, documented value;
+   `DEMO_PASSWORD` overrode it, and `main()` still refuses to run at all under
+   `NODE_ENV=production`. (Revisited 2026-11-10: that default lived in a public
+   repository, so it was a published password. `DEMO_PASSWORD` is now required
+   and the literal is gone from the code and from this file.)
 2. A **leftover smoke-test `SUPER_ADMIN`** was found in the database. The smoke
    script cleans up in a `finally`, which does not run when the process is
    killed. It now sweeps `smoke.*` accounts at the *start* of every run rather
