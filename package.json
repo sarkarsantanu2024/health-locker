@@ -23,6 +23,7 @@
     "db:demo": "tsx prisma/demo.ts",
     "create-super-admin": "tsx scripts/create-super-admin.ts",
     "purge-test-accounts": "tsx scripts/purge-test-accounts.mts",
+    "rotate-demo-passwords": "tsx scripts/rotate-demo-passwords.ts",
     "set-merchant-profile": "tsx scripts/set-merchant-profile.ts",
     "vercel-build": "prisma generate && prisma migrate deploy && next build",
     "android:shell": "tsx scripts/build-android.mts",
