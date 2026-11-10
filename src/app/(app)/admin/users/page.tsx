@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { UserRow } from "@/app/(app)/admin/users/user-row";
-import { requirePermission } from "@/lib/auth/session";
+import { requirePlatformPermission } from "@/lib/auth/session";
 import { listUsers } from "@/modules/admin/admin.service";
 import { ROLES, USER_STATUSES } from "@/shared/enums";
 import { buttonVariants } from "@/ui/button";
@@ -20,7 +20,9 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<{ q?: string; role?: string; status?: string; page?: string }>;
 }) {
-  const actor = await requirePermission("user:read");
+  // Provider admins also hold `user:read` — for THEIR staff page. This directory
+  // lists every account on the platform, so the role is checked too.
+  const actor = await requirePlatformPermission("user:read");
   const params = await searchParams;
 
   const result = await listUsers(

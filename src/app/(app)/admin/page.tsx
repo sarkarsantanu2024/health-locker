@@ -10,7 +10,7 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { requireUser } from "@/lib/auth/session";
+import { requirePlatformUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { revenueSummary } from "@/modules/admin/admin.service";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,8 @@ function money(minor: number): string {
 }
 
 export default async function AdminHomePage() {
-  const user = await requireUser();
+  // Platform-wide revenue and user counts: a role check, not a permission one.
+  const user = await requirePlatformUser();
 
   const [revenue, users, pendingUsers, orgs, pendingRequests] = await Promise.all([
     revenueSummary(),

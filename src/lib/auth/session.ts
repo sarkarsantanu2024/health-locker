@@ -146,6 +146,35 @@ export async function requireTenantPermission(
 }
 
 /**
+ * Platform staff only. A permission string alone is not platform authority —
+ * provider admins hold `user:read` for their own staff page — so anything that
+ * acts across tenants (the `/admin` console, payment verification, the audit
+ * trail) checks the ROLE, not just the grant.
+ */
+export async function requirePlatformUser(): Promise<SessionUser> {
+  const user = await requireUser();
+
+  if (!isPlatformRole(user.role)) {
+    throw new AppError("FORBIDDEN", "This area is for platform administrators.", {
+      reason: "PLATFORM_ROLE_REQUIRED",
+    });
+  }
+
+  return user;
+}
+
+/** Platform role AND the permission — the guard for every cross-tenant action. */
+export async function requirePlatformPermission(permission: PermissionKey): Promise<SessionUser> {
+  const user = await requirePlatformUser();
+
+  if (!user.permissions.includes(permission)) {
+    throw new AppError("FORBIDDEN", "You do not have permission to do that.", { permission });
+  }
+
+  return user;
+}
+
+/**
  * Asserts a row belongs to the caller's tenant. Call this after loading any
  * record fetched by id — an id from a URL is attacker-controlled.
  */

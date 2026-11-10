@@ -127,7 +127,15 @@ const PROVIDER_STAFF_BASE: PermissionKey[] = [
   "notification:manage",
 ];
 
-/** What an org admin adds on top of their staff role, for every provider type. */
+/**
+ * What an org admin adds on top of their staff role, for every provider type.
+ *
+ * Everything here is TENANT-scoped: the `user:*` grants manage the admin's own
+ * staff, `invoice:manage` their own invoices. Nothing in this list may appear
+ * in `PLATFORM_ONLY_PERMISSIONS` — a provider admin must never be able to
+ * approve another tenant's payment or read the platform-wide audit trail, which
+ * is exactly what happened when `payment:verify` and `audit:read` sat here.
+ */
 const PROVIDER_ADMIN_EXTRAS: PermissionKey[] = [
   "org:read",
   "user:read",
@@ -136,11 +144,26 @@ const PROVIDER_ADMIN_EXTRAS: PermissionKey[] = [
   "user:reset-password",
   "user:suspend",
   "invoice:manage",
-  "payment:verify",
   "merchant-profile:manage",
   "subscription:read",
   "analytics:read",
+];
+
+/**
+ * Permissions that act ACROSS tenants. Holding one of these is what makes a
+ * screen or action "platform administration": the `/admin` console, approving
+ * any payment, reading every tenant's audit trail. Only `PLATFORM_ROLES` may
+ * hold them, and `requirePlatformPermission` checks the role as well as the
+ * grant, so a future edit to a role bundle cannot quietly widen this set.
+ */
+export const PLATFORM_ONLY_PERMISSIONS: readonly PermissionKey[] = [
+  "org:manage",
   "audit:read",
+  "access-request:read",
+  "access-request:review",
+  "payment:verify",
+  "plan:manage",
+  "subscription:manage",
 ];
 
 const CLINIC_STAFF: PermissionKey[] = [

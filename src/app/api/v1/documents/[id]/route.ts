@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auditRead } from "@/lib/audit";
-import { getSession, hasPermission } from "@/lib/auth/session";
+import { getSession, isPlatformRole } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { getObject } from "@/lib/storage";
 import { assertCanReadPatient } from "@/modules/patient/context";
@@ -15,8 +15,9 @@ export const dynamic = "force-dynamic";
  *
  * Authorization is explicit and layered, because a document id in a URL is
  * attacker-controlled:
- *   - platform staff with `document:read` may view any document (that is what
- *     verifying a payment screenshot requires);
+ *   - platform staff (by ROLE, not by permission string — provider admins hold
+ *     overlapping grants) may view any document; verifying a payment screenshot
+ *     requires it;
  *   - provider staff may view documents belonging to their own tenant;
  *   - a patient may view their own, or a linked family member's.
  * Everything else is NOT_FOUND, never FORBIDDEN — confirming a document exists
@@ -46,8 +47,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     if (!document) throw new AppError("NOT_FOUND", "Not found.");
 
-    const isPlatformReviewer =
-      hasPermission(session, "payment:verify") || hasPermission(session, "audit:read");
+    const isPlatformReviewer = isPlatformRole(session.role);
     const isOwnUpload = document.uploadedById === session.id;
     const isSameTenant = Boolean(document.orgId && session.orgId && document.orgId === session.orgId);
 

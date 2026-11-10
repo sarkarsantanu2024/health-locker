@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { ROLES, type Role } from "@/shared/enums";
+import { PLATFORM_ROLES, ROLES, type Role } from "@/shared/enums";
 import {
   PERMISSIONS,
   PERMISSION_KEYS,
+  PLATFORM_ONLY_PERMISSIONS,
   ROLE_PERMISSIONS,
   roleHasPermission,
   type PermissionKey,
@@ -61,10 +62,54 @@ describe("deny-by-default", () => {
     ["PLATFORM_ADMIN", "plan:manage"],
     // A clinic does not sign off lab results.
     ["CLINIC_ADMIN", "report:verify"],
+    // An org admin runs THEIR tenant. Approving any tenant's payment and reading
+    // the platform-wide audit trail were granted here by mistake once; this
+    // pins the fix.
+    ["CLINIC_ADMIN", "payment:verify"],
+    ["HOSPITAL_ADMIN", "payment:verify"],
+    ["DIAGNOSTIC_ADMIN", "payment:verify"],
+    ["PHARMACY_ADMIN", "payment:verify"],
+    ["CLINIC_ADMIN", "audit:read"],
+    ["PHARMACY_ADMIN", "audit:read"],
   ];
 
   it.each(forbidden)("%s cannot %s", (role, permission) => {
     expect(roleHasPermission(role, permission)).toBe(false);
+  });
+});
+
+describe("platform versus tenant", () => {
+  const tenantAndConsumerRoles = ROLES.filter((role) => !PLATFORM_ROLES.includes(role));
+
+  // The full matrix, not a sample: every non-platform role against every
+  // cross-tenant permission. A new role bundle that leaks one fails here.
+  const matrix: Array<[Role, PermissionKey]> = tenantAndConsumerRoles.flatMap((role) =>
+    PLATFORM_ONLY_PERMISSIONS.map((permission): [Role, PermissionKey] => [role, permission]),
+  );
+
+  it.each(matrix)("%s never holds platform-only %s", (role, permission) => {
+    expect(roleHasPermission(role, permission)).toBe(false);
+  });
+
+  it("lists only real permissions as platform-only", () => {
+    for (const permission of PLATFORM_ONLY_PERMISSIONS) {
+      expect(PERMISSION_KEYS).toContain(permission);
+    }
+  });
+
+  it("still lets a platform admin verify payments and read the trail", () => {
+    expect(roleHasPermission("PLATFORM_ADMIN", "payment:verify")).toBe(true);
+    expect(roleHasPermission("PLATFORM_ADMIN", "audit:read")).toBe(true);
+  });
+
+  it("keeps tenant staff management with the org admin", () => {
+    // These overlap with platform grants on purpose; the ROLE check in
+    // `requirePlatformPermission` is what keeps them tenant-scoped.
+    for (const role of ["CLINIC_ADMIN", "HOSPITAL_ADMIN", "DIAGNOSTIC_ADMIN", "PHARMACY_ADMIN"] as const) {
+      expect(roleHasPermission(role, "user:read")).toBe(true);
+      expect(roleHasPermission(role, "user:create")).toBe(true);
+      expect(roleHasPermission(role, "invoice:manage")).toBe(true);
+    }
   });
 });
 
@@ -74,7 +119,7 @@ describe("role capabilities", () => {
     ["PATIENT", "payment:submit"],
     ["PATIENT", "emergency-card:manage"],
     ["CLINIC_STAFF", "prescription:create"],
-    ["CLINIC_ADMIN", "payment:verify"],
+    ["CLINIC_ADMIN", "user:create"],
     ["HOSPITAL_STAFF", "admission:manage"],
     ["DIAGNOSTIC_STAFF", "report:upload"],
     ["DIAGNOSTIC_ADMIN", "report:verify"],

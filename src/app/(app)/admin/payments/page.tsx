@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { requirePermission } from "@/lib/auth/session";
+import { requirePlatformPermission } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { PaymentQueue } from "@/app/(app)/admin/payments/payment-queue";
 import { listPendingSubmissions } from "@/modules/billing/payment.service";
@@ -13,7 +13,8 @@ export const metadata: Metadata = { title: "Payments" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminPaymentsPage() {
-  await requirePermission("payment:verify");
+  // This queue spans every tenant, so the role is checked as well as the grant.
+  await requirePlatformPermission("payment:verify");
 
   const startOfMonth = new Date();
   startOfMonth.setDate(1);

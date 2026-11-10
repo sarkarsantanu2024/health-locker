@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { requirePermission } from "@/lib/auth/session";
+import { requirePlatformPermission } from "@/lib/auth/session";
 import { auditActions, listAuditLog } from "@/modules/admin/admin.service";
 import { buttonVariants } from "@/ui/button";
 import { Badge } from "@/ui/badge";
@@ -26,7 +26,8 @@ export default async function AuditPage({
 }: {
   searchParams: Promise<{ action?: string; page?: string }>;
 }) {
-  await requirePermission("audit:read");
+  // The trail covers every tenant; only a platform role may read it whole.
+  await requirePlatformPermission("audit:read");
   const params = await searchParams;
 
   const [result, actions] = await Promise.all([

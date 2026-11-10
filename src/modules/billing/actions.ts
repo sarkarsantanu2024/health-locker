@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { getSession, requirePermission } from "@/lib/auth/session";
+import { getSession, requirePlatformPermission } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/ratelimit";
 import {
@@ -178,7 +178,9 @@ export async function approvePaymentAction(
   if (!parsed.success) return { ok: false, error: "Could not identify that submission." };
 
   try {
-    const actor = await requirePermission("payment:verify");
+    // Approval activates accounts and extends subscriptions for ANY tenant, so
+    // it is platform work: the role is required, not just the grant.
+    const actor = await requirePlatformPermission("payment:verify");
     const result = await approvePayment(parsed.data.submissionId, actor.id, parsed.data.note || undefined);
 
     revalidatePath("/admin/payments");
@@ -203,7 +205,7 @@ export async function rejectPaymentAction(
   if (!parsed.success) return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors };
 
   try {
-    const actor = await requirePermission("payment:verify");
+    const actor = await requirePlatformPermission("payment:verify");
     await rejectPayment(parsed.data.submissionId, actor.id, parsed.data.note);
 
     revalidatePath("/admin/payments");
