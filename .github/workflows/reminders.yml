@@ -1,0 +1,39 @@
+# Medication reminders look at a ±30-minute window around "now"
+# (src/modules/notify/reminders.service.ts). Vercel's Hobby tier allows one cron
+# a day, so the once-daily schedule in vercel.json alone would send almost
+# nothing. This workflow supplies the real cadence — see docs/reminders-cron.md.
+#
+# It needs a repository secret named CRON_SECRET holding the same value as the
+# Vercel environment variable. Until that secret exists every run fails with
+# 401, visibly, in the Actions tab — which is better than silently not firing.
+name: reminders
+
+on:
+  schedule:
+    # Every 30 minutes. GitHub may delay a scheduled run by a few minutes under
+    # load; the service's overlapping window and per-dose dedupe absorb that.
+    - cron: "0,30 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: reminders
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Run the reminder pass
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repository secret is not set — see docs/reminders-cron.md"
+            exit 1
+          fi
+          curl -fsS -X POST "https://health-locker-chi.vercel.app/api/jobs/reminders" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --max-time 90

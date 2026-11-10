@@ -80,6 +80,9 @@ jobs:
       - name: Render every authenticated page
         env:
           SMOKE_BASE: http://127.0.0.1:3000
+          # Throwaway: the demo seed refuses to run without one, and this
+          # database is destroyed with the runner.
+          DEMO_PASSWORD: ci-demo-password-not-a-secret
         run: |
           pnpm db:demo --reset
           pnpm start &
