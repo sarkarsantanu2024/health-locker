@@ -93,7 +93,7 @@ function contentSecurityPolicy(nonce: string): string {
   ].join("; ");
 }
 
-/** Applied to every response the middleware returns, redirect or not. */
+/** Applied to every response the proxy returns, redirect or not. */
 function withSecurityHeaders(response: NextResponse, nonce: string): NextResponse {
   response.headers.set("Content-Security-Policy", contentSecurityPolicy(nonce));
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -102,7 +102,9 @@ function withSecurityHeaders(response: NextResponse, nonce: string): NextRespons
   return response;
 }
 
-export async function middleware(request: NextRequest) {
+// Next 16 calls this file `proxy.ts` and the export `proxy` (the `middleware`
+// convention is deprecated); the behaviour is the same edge gate.
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");

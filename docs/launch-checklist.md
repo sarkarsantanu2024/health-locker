@@ -59,7 +59,7 @@ curl -X POST https://<domain>/api/jobs/reminders   # must be 401, not a redirect
 ```
 
 A redirect to `/login` on the second one means `/api/jobs` fell out of
-`PUBLIC_PATHS` in `src/middleware.ts`, and reminders will never fire.
+`PUBLIC_PATHS` in `src/proxy.ts`, and reminders will never fire.
 
 ---
 

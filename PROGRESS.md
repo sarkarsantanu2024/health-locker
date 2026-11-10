@@ -227,7 +227,7 @@ queues key off.
   password change, TOTP), `signup.service` (self-registration in one
   transaction), `provisioning.service` (createUser / resetPassword /
   setUserActive), `actions.ts`, `navigation.ts`.
-- `src/middleware.ts` — edge redirect + forced password-change pin.
+- `src/middleware.ts` (now `src/proxy.ts`) — edge redirect + forced password-change pin.
 - `src/shared/schemas/auth.ts` — zod contracts (closes Phase 1 open item #1).
 - Screens: `/login` (progressive 2FA), `/signup`, `/signup/submitted`,
   `/change-password`, `/account` (TOTP enrolment), the app shell, and portal
